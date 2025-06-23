@@ -2,18 +2,19 @@ import ToolType from "../dto/ft/ToolType";
 import TestData from "./TestData";
 import TestParserFactory from "./TestParserFactory";
 import { Logger } from "../utils/logger";
+import { calcByExpr } from "../utils/utils";
 const _logger = new Logger("TestParamsParser");
 
 export default class TestParamsParser {
   public static parseTestData(testData: string, framework: ToolType = ToolType.MBT): Map<number, TestData> {
     _logger.debug(`Parsing test data: ${testData} with framework: ${framework}`);
-    const strTestParam = this.calcByExpression(testData, "^v1:(.+)$", 1);
+    const strTestParam = calcByExpr(testData, /^v1:(.+)$/, 1);
     const arrTestParam = strTestParam.split(';');
     const testDataMap = new Map<number, TestData>();
 
-    arrTestParam.forEach(param => {
+    arrTestParam.forEach(p => {
       try {
-        const testParts = param.split('|');
+        const testParts = p.split('|');
         const parsedTestData = TestParserFactory.getParser(framework).parseTestParam(testParts);
         testDataMap.set(parsedTestData.runId, parsedTestData);
       } catch (e) {
@@ -22,16 +23,5 @@ export default class TestParamsParser {
     });
 
     return testDataMap;
-  }
-
-  public static calcByExpression(param: string, regex: string, groupNum: number): string {
-    _logger.debug(`Apply regex: ${regex} on param: ${param} for group number: ${groupNum}`);
-    const rxTemplate = new RegExp(regex);
-    const match = param.match(rxTemplate);
-
-    if (match) {
-      return match[groupNum];
-    }
-    return param;
   }
 }

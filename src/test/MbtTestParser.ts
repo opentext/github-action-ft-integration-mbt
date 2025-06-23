@@ -1,5 +1,5 @@
+import { calcByExpr } from "../utils/utils";
 import TestData from "./TestData";
-import TestParamsParser from "./TestParamsParser";
 import TestParser from "./TestParser";
 
 export default class MbtTestParser implements TestParser {
@@ -11,8 +11,8 @@ export default class MbtTestParser implements TestParser {
       packageSource: param[0],
       className: param[1],
       testName: param[2],
-      runId: parseInt(TestParamsParser.calcByExpression(param[3], "^runId=(.+)$", 1), 10),
-      mbtData: param[4] ? TestParamsParser.calcByExpression(param[4], "^mbtData=(.+)$", 1) : undefined
+      runId: parseInt(calcByExpr(param[3], /^runId=(.+)$/, 1), 10),
+      mbtData: param[4] ? calcByExpr(param[4], /^mbtData=(.+)$/, 1) : undefined
     };
     return testData;
   }

@@ -225,4 +225,14 @@ const extractActionNameFromActionPath = (repositoryPath: string): string => {
   return repoPathParts[repoPathParts.length - 1]; // the last part of the repository path without logical name is the action name
 }
 
-export { getHeadCommitSha, isBlank, isTestMainFile, getTestType, getParentFolderFullPath, saveSyncedCommit, getSyncedCommit, getSyncedTimestamp, extractWorkflowFileName, isVersionGreaterOrEqual, sleep, escapeQueryVal, getTestPathPrefix, extractScmTestPath, extractScmPathFromActionPath, extractActionLogicalNameFromActionPath, extractActionNameFromActionPath };
+const calcByExpr = (param: string, regex: RegExp, groupNum: number): string => {
+  _logger.debug(`Apply regex: ${regex} on param: ${param} for group number: ${groupNum}`);
+  const match = param.match(regex);
+
+  if (match) {
+    return match[groupNum];
+  }
+  return param;
+}
+
+export { getHeadCommitSha, isBlank, isTestMainFile, getTestType, getParentFolderFullPath, saveSyncedCommit, getSyncedCommit, getSyncedTimestamp, extractWorkflowFileName, isVersionGreaterOrEqual, sleep, escapeQueryVal, getTestPathPrefix, extractScmTestPath, extractScmPathFromActionPath, extractActionLogicalNameFromActionPath, extractActionNameFromActionPath, calcByExpr };

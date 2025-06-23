@@ -47,6 +47,7 @@ import CiJob from '../dto/octane/general/CiJob';
 import CiJobBody from '../dto/octane/general/bodies/CiJobBody';
 import CiServerBody from '../dto/octane/general/bodies/CiServerBody';
 import Test from '../dto/octane/general/Test';
+import MbtTestData from '../dto/octane/mbt/MbtTestData';
 const { ID, COLLECTION_NAME: MODEL_ITEMS, NAME, LOGICAL_NAME, ENTITY_NAME: MODEL_ITEM, ENTITY_SUBTYPE: MODEL_FOLDER, SUBTYPE, PARENT } = EntityConstants.ModelFolder;
 const { COLLECTION_NAME: AUTOMATED_TESTS, TEST_RUNNER } = EntityConstants.AutomatedTest;
 const { REPOSITORY_PATH } = EntityConstants.MbtUnit;
@@ -424,11 +425,24 @@ export default class OctaneClient {
     );
   };
 
-  public static getTestSuiteData = async (suiteRunid: number): Promise<Map<number, string>> => {
+  public static getMbtTestSuiteData = async (suiteRunid: number): Promise<Map<number, MbtTestData>> => {
     this._logger.debug(`Getting test suite data for suiteRunId: ${suiteRunid} ...`);
-    const res = await this._octane.executeCustomRequest(`${this.CI_API_URL}/suite_runs/${suiteRunid}/get_suite_data`, Octane.operationTypes.get);
-    this._logger.debug(JSON.stringify(res));
-    return res;
+    const res: { [key: string]: string } = await this._octane.executeCustomRequest(`${this.CI_API_URL}/suite_runs/${suiteRunid}/get_suite_data`, Octane.operationTypes.get);
+    const decodedMap = new Map<number, MbtTestData>();
+
+    for (const [key, base64Str] of Object.entries(res)) {
+      try {
+        const decodedStr = Buffer.from(base64Str, 'base64').toString('utf8');
+        this._logger.debug(`${key}: ${decodedStr}`);
+        const testData: MbtTestData = JSON.parse(decodedStr);
+        decodedMap.set(Number(key), testData);
+      } catch (err) {
+        this._logger.error(`Failed to decode or parse Base64 string for key ${key}: ${(err as Error).message}`);
+        throw err;
+      }
+    }
+
+    return decodedMap;
   }
 
   public static getCiJob = async (ciId: string, ciServer: CiServer): Promise<CiJob | undefined> => {

@@ -49,6 +49,9 @@ import { WorkflowInputs } from './dto/github/Workflow';
 import TestParamsParser from './test/TestParamsParser';
 import { getParamsFromConfig } from './service/parametersService';
 import CiParameter from './dto/octane/events/CiParameter';
+import MbtDataPrepConverter from './test/MbtDataPrepConverter';
+import MbtTestData, { MbtTestDataEx } from './dto/octane/mbt/MbtTestData';
+import TestData from './test/TestData';
 
 const _config = getConfig();
 const _logger: Logger = new Logger('eventHandler');
@@ -121,9 +124,9 @@ export const handleCurrentEvent = async (): Promise<void> => {
         );
         if ([testsToRun, suiteRunId, suiteId, executionId].every((val, i) => val && val !== defaults[keys[i]])) {
           _logger.debug(`Handle Executor event ...`);
-          const result = TestParamsParser.parseTestData(testsToRun);
-          _logger.debug("TestData: ", result);
-          await handleExecutorEvent(parseInt(suiteRunId));
+          const testDataMap = TestParamsParser.parseTestData(testsToRun);
+          _logger.debug("TestData: ", testDataMap);
+        await handleExecutorEvent(parseInt(executionId), parseInt(suiteRunId), testDataMap);
           break;
         } else {
           _logger.debug(`Continue with discovery / sync ...`);
@@ -209,18 +212,15 @@ export const handleCurrentEvent = async (): Promise<void> => {
 
 };
 
-const handleExecutorEvent = async (suiteRunId: number): Promise<void> => {
-  const tsData = await OctaneClient.getTestSuiteData(suiteRunId);
-  const decodedData: Map<number, string> = new Map();
-  tsData.forEach((base64Text, key) => {
-    try {
-      const text = Buffer.from(base64Text, "base64").toString("utf8");
-      decodedData.set(key, text);
-    } catch (err) {
-      console.error(`Failed to decode Base64 string for key ${key}:`, base64Text, err);
-      throw err;
-    }
-  });
+const handleExecutorEvent = async (executionId: number, suiteRunId: number, testDataMap: Map<number, TestData>): Promise<void> => {
+  const mbtTestSuiteData = await OctaneClient.getMbtTestSuiteData(suiteRunId);
+  const arr: MbtTestDataEx[] = [];
+  const repoFolderPath = "TODO";
+
+  for (const [runId, mbtTestData] of mbtTestSuiteData.entries()) {
+    const mbtTestDataEx = MbtDataPrepConverter.buildMbtTestDataEx(repoFolderPath, executionId, runId, mbtTestData, testDataMap);
+    arr.push(mbtTestDataEx);
+  };
   //TODO
 }
 
