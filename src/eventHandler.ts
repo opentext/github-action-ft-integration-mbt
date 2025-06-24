@@ -50,7 +50,7 @@ import TestParamsParser from './test/TestParamsParser';
 import { getParamsFromConfig } from './service/parametersService';
 import CiParameter from './dto/octane/events/CiParameter';
 import MbtDataPrepConverter from './test/MbtDataPrepConverter';
-import MbtTestData, { MbtTestDataEx } from './dto/octane/mbt/MbtTestData';
+import MbtTestData, { MbtTestInfo } from './dto/octane/mbt/MbtTestData';
 import TestData from './test/TestData';
 
 const _config = getConfig();
@@ -213,13 +213,15 @@ export const handleCurrentEvent = async (): Promise<void> => {
 };
 
 const handleExecutorEvent = async (executionId: number, suiteRunId: number, testDataMap: Map<number, TestData>): Promise<void> => {
+  const workDir = process.cwd();
+  _logger.debug(`handleExecutorEvent: executionId=${executionId}, suiteRunId=${suiteRunId}, workDir=[${workDir}]`);
   const mbtTestSuiteData = await OctaneClient.getMbtTestSuiteData(suiteRunId);
-  const arr: MbtTestDataEx[] = [];
-  const repoFolderPath = "TODO";
+  const mbtTestInfos: MbtTestInfo[] = [];
+  const repoFolderPath = workDir;
 
   for (const [runId, mbtTestData] of mbtTestSuiteData.entries()) {
-    const mbtTestDataEx = MbtDataPrepConverter.buildMbtTestDataEx(repoFolderPath, executionId, runId, mbtTestData, testDataMap);
-    arr.push(mbtTestDataEx);
+    const mbtTestInfo = MbtDataPrepConverter.buildMbtTestInfo(repoFolderPath, executionId, runId, mbtTestData, testDataMap);
+    mbtTestInfos.push(mbtTestInfo);
   };
   //TODO
 }

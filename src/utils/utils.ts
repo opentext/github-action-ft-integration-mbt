@@ -57,7 +57,7 @@ async function saveSyncedCommit(newCommit: string): Promise<void> {
     return;
   try {
     await fs.writeFile(SYNCED_COMMIT_SHA, newCommit.trim(), UTF8);
-    _logger.debug(`Newly synced commit ${newCommit} saved to ${SYNCED_COMMIT_SHA}`);
+    _logger.debug(`Newly synced commit ${newCommit} saved to [${SYNCED_COMMIT_SHA}]`);
     await saveSyncedTimestamp();
   } catch (error) {
     throw new Error(`Failed to save string: ${(error as Error).message}`);
@@ -71,11 +71,11 @@ async function saveSyncedCommit(newCommit: string): Promise<void> {
 async function getSyncedCommit(): Promise<string> {
   try {
     const data = await fs.readFile(SYNCED_COMMIT_SHA, UTF8);
-    _logger.debug(`Last synced commit: ${data} loaded from ${SYNCED_COMMIT_SHA}`);
+    _logger.debug(`Last synced commit: ${data} loaded from [${SYNCED_COMMIT_SHA}]`);
     return data.trim();
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      // File doesn't exist yet, return empty string
+      _logger.debug(`File doesn't exist yet [${SYNCED_COMMIT_SHA}]`);
       return "";
     }
     throw new Error(`Failed to load string: ${(error as Error).message}`);
@@ -86,7 +86,7 @@ async function saveSyncedTimestamp(): Promise<void> {
   try {
     const currentTime = new Date().toISOString();
     await fs.writeFile(SYNCED_TIMESTAMP, currentTime, UTF8);
-    _logger.debug(`Newly run timestamp ${currentTime} saved to ${SYNCED_TIMESTAMP}`);
+    _logger.debug(`Newly run timestamp ${currentTime} saved to [${SYNCED_TIMESTAMP}]`);
   } catch (error) {
     throw new Error(`Failed to save string: ${(error as Error).message}`);
   }
@@ -95,7 +95,7 @@ async function saveSyncedTimestamp(): Promise<void> {
 async function getSyncedTimestamp(): Promise<number> {
   try {
     const str = await fs.readFile(SYNCED_TIMESTAMP, UTF8);
-    _logger.debug(`Last synced timestamp: ${str} loaded from ${SYNCED_TIMESTAMP}`);
+    _logger.debug(`Last synced timestamp: ${str} loaded from [${SYNCED_TIMESTAMP}]`);
     return new Date(str).getTime();
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {

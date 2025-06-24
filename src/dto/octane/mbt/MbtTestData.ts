@@ -38,14 +38,14 @@ export interface MbtScriptData {
   basicScript: string;
 }
 
-export interface MbtTestDataEx extends UftTestDataEx {
+export interface MbtTestInfo extends UftTestInfo {
   scriptData: MbtScriptData[];
   underlyingTests: string[];
   unitIds: number[];
   encodedIterationsStr: string;
 }
 
-export interface UftTestDataEx {
+export interface UftTestInfo {
   executionId: number;
   runId: number;
   testName: string;

@@ -1,5 +1,5 @@
 import { calcByExpr } from "../utils/utils";
-import MbtTestData, { UnitDetails, MbtScriptData, TestParam, MbtDataSet, MbtTestDataEx } from '../dto/octane/mbt/MbtTestData';
+import MbtTestData, { UnitDetails, MbtScriptData, TestParam, MbtDataSet, MbtTestInfo } from '../dto/octane/mbt/MbtTestData';
 import { Buffer } from 'buffer';
 import { Logger } from '../utils/logger';
 import TestData from "./TestData";
@@ -10,6 +10,7 @@ const _mbtParentSubDir = "___mbt";
 
 export default class MbtDataPrepConverter {
   private static generateScriptData(units: UnitDetails[], repoFolderPath: string): MbtScriptData[] {
+    _logger.debug(`generateScriptData: units.length=${units.length}, repoFolderPath=[${repoFolderPath}] ...`);
     return units
       .filter(unit => unit.pathInScm.includes(':'))
       .map(unit => {
@@ -27,8 +28,8 @@ export default class MbtDataPrepConverter {
   }
 
   private static extractDataTableIterations(data: MbtDataSet, testName: string): string {
-    _logger.debug(`Extracting data table iterations for test: ${testName}`);
-    let encodedIterationsAsStr = "";
+    _logger.debug(`extractDataTableIterations: testName=${testName} ...`);
+    let encodedIterationsStr = "";
     if (data?.parameters?.length) {
       const csvRows: string[] = [];
       csvRows.push(data.parameters.map(this.escapeCsvVal).join(",")); // add header row
@@ -37,12 +38,13 @@ export default class MbtDataPrepConverter {
         csvRows.push(row);
       });
       const csvStr = csvRows.join("\n");
-      encodedIterationsAsStr = Buffer.from(csvStr, 'utf-8').toString('base64');
+      encodedIterationsStr = Buffer.from(csvStr, 'utf-8').toString('base64');
     }
-    return encodedIterationsAsStr;
+    return encodedIterationsStr;
   }
 
-  public static buildMbtTestDataEx(repoFolderPath: string, executionId: number, runId: number, mbtTestData: MbtTestData, testDataMap: Map<number, TestData>): MbtTestDataEx {
+  public static buildMbtTestInfo(repoFolderPath: string, executionId: number, runId: number, mbtTestData: MbtTestData, testDataMap: Map<number, TestData>): MbtTestInfo {
+    _logger.debug(`buildMbtTestInfo: executionId=${executionId}, runId=${runId} ...`);
     const mbtScript = this.generateScriptData(mbtTestData.actions, repoFolderPath);
     const underlyingTests = mbtTestData.actions.map(ud => ud.testPath ?? "");
     const unitIds = mbtTestData.actions.map(ud => ud.unitId);
@@ -63,21 +65,17 @@ export default class MbtDataPrepConverter {
   }
 
   private static escapeCsvVal(value: string): string {
-    // Remove enclosing double quotes if present
-    let cleanValue = value;
     if (value.startsWith('"') && value.endsWith('"')) {
-      cleanValue = value.slice(1, -1);
+      value = value.slice(1, -1); // Remove the outer quotes
     }
 
     // Escape internal double quotes by doubling them
-    cleanValue = cleanValue.replace(/"/g, '""');
-
-    // Enclose in double quotes if it contains special characters
-    if (/[,\n\r]/.test(cleanValue)) {
-      return `"${cleanValue}"`;
+    if (value.includes('"')) {
+      value = value.replace(/"/g, '""');
     }
 
-    return cleanValue;
+    // Enclose in double quotes if it contains special characters
+    return /[",\n\r]/.test(value) ? `"${value}"` : value;
   }
 
   private static extractActionParams(params: TestParam[]): string {
