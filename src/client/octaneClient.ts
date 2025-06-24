@@ -426,20 +426,20 @@ export default class OctaneClient {
     );
   };
 
-  public static getMbtTestSuiteData = async (suiteRunid: number): Promise<Map<number, MbtTestData>> => {
-    this._logger.debug(`getMbtTestSuiteData: suiteRunId=${suiteRunid} ...`);
-    const res: { [key: string]: string } = await this._octane.executeCustomRequest(`${this.CI_API_URL}/suite_runs/${suiteRunid}/get_suite_data`, Octane.operationTypes.get);
+  public static getMbtTestSuiteData = async (suiteRunId: number): Promise<Map<number, MbtTestData>> => {
+    this._logger.debug(`getMbtTestSuiteData: suiteRunId=${suiteRunId} ...`);
+    const res: { [key: string]: string } = await this._octane.executeCustomRequest(`${this.CI_API_URL}/suite_runs/${suiteRunId}/get_suite_data`, Octane.operationTypes.get);
     this._logger.debug("getMbtTestSuiteData:", res);
     const decodedMap = new Map<number, MbtTestData>();
 
-    for (const [key, base64Str] of Object.entries(res)) {
+    for (const [runId, base64Str] of Object.entries(res)) {
       try {
         const decodedStr = Buffer.from(base64Str, 'base64').toString('utf8');
-        this._logger.debug(`${key}: ${decodedStr}`);
+        this._logger.debug(`${runId}: ${decodedStr}`);
         const testData: MbtTestData = JSON.parse(decodedStr);
-        decodedMap.set(Number(key), testData);
+        decodedMap.set(Number(runId), testData);
       } catch (err) {
-        this._logger.error(`getMbtTestSuiteData: Failed to decode or parse Base64 string for key ${key}: ${(err as Error).message}`);
+        this._logger.error(`getMbtTestSuiteData: Failed to decode or parse Base64 string for key ${runId}: ${(err as Error).message}`);
         throw err;
       }
     }

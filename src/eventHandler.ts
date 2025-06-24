@@ -222,6 +222,7 @@ const handleExecutorEvent = async (executionId: number, suiteRunId: number, test
   for (const [runId, mbtTestData] of mbtTestSuiteData.entries()) {
     const mbtTestInfo = MbtDataPrepConverter.buildMbtTestInfo(repoFolderPath, executionId, runId, mbtTestData, testDataMap);
     mbtTestInfos.push(mbtTestInfo);
+    _logger.debug(JSON.stringify(mbtTestInfo, null, 2));
   };
   //TODO
 }

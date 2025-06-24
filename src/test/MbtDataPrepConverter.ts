@@ -14,7 +14,7 @@ export default class MbtDataPrepConverter {
     return units
       .filter(unit => unit.pathInScm.includes(':'))
       .map(unit => {
-        const unitPathTmp = calcByExpr(unit.pathInScm, /(.*)\\\\Action/, 1);
+        const unitPathTmp = calcByExpr(unit.pathInScm, /(.*)\\Action/, 1);
         unit.testPath = `${repoFolderPath}\\${unitPathTmp}`;
 
         let script = `\r\nLoadAndRunAction "${repoFolderPath}\\${unitPathTmp}","${calcByExpr(unit.pathInScm, /:(.*)/, 1)}"`;
