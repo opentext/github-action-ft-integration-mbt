@@ -214,7 +214,7 @@ export const handleCurrentEvent = async (): Promise<void> => {
 
 const handleExecutorEvent = async (executionId: number, suiteRunId: number, testDataMap: Map<number, TestData>): Promise<void> => {
   const workDir = process.cwd();
-  _logger.debug(`handleExecutorEvent: executionId=${executionId}, suiteRunId=${suiteRunId}, workDir=[${workDir}]`);
+  _logger.debug(`handleExecutorEvent: executionId=${executionId}, suiteRunId=${suiteRunId}`);
   const mbtTestSuiteData = await OctaneClient.getMbtTestSuiteData(suiteRunId);
   const mbtTestInfos: MbtTestInfo[] = [];
   const repoFolderPath = workDir;

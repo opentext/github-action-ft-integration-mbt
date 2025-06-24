@@ -226,7 +226,7 @@ const extractActionNameFromActionPath = (repositoryPath: string): string => {
 }
 
 const calcByExpr = (param: string, regex: RegExp, groupNum: number): string => {
-  _logger.debug(`Apply regex: ${regex} on param: ${param} for group number: ${groupNum}`);
+  _logger.debug(`calcByExpr: param=${param}, regex=${regex}, groupNum=${groupNum} ...`);
   const match = param.match(regex);
 
   if (match) {
