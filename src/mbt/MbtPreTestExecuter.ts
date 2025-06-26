@@ -1,7 +1,6 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
 import { spawn } from 'child_process';
-import https from 'https';
 import { Logger } from '../utils/logger';
 import { TestResources, RecoveryScenarioData } from './TestResources';
 import { escapePropVal, formatTimestamp, getGuiTestDocument } from '../utils/utils';
@@ -15,12 +14,19 @@ const HP_TL_EXE = 'HpToolsLauncher.exe';
 export default class MbtPreTestExecuter {
   public static async preProcess(mbtTestInfos: MbtTestInfo[]): Promise<ExitCode> {
     _logger.debug(`preProcess: mbtTestInfos.length=${mbtTestInfos.length} ...`);
+
+    for (const [key, value] of Object.entries(process.env)) {
+      if (key.startsWith('GITHUB_') || key.startsWith('RUNNER_')) {
+        _logger.debug(`${key}=${value}`);
+      }
+    }
+
     const mbtPropsFullPath = await this.createMbtPropsFile(mbtTestInfos);
     const exitCode = await this.runHpToolsLauncher(mbtPropsFullPath);
     return exitCode;
   }
 
-  private static async ensureHpToolsLauncher(): Promise<void> {
+  private static async ensureHTLExists(): Promise<void> {
     const actionPath = process.env.GITHUB_ACTION_PATH; // e.g., C:\GitHub_runner\_work\_actions\dorin7bogdan\github-action-ft-integration\main
     _logger.debug(`ensureHpToolsLauncher: actionPath=[${actionPath}] ...`);
     if (!actionPath) {
@@ -30,7 +36,6 @@ export default class MbtPreTestExecuter {
     }
 
     const exeFullPath = path.join(actionPath, 'bin', HP_TL_EXE);
-
     try {
       await fs.access(exeFullPath, fs.constants.F_OK);
       _logger.debug(`Located [${exeFullPath}]`);
@@ -41,9 +46,21 @@ export default class MbtPreTestExecuter {
     }
   }
 
+  private static async ensureMbtPropsExists(mbtPropsFullPath: string): Promise<void> {
+    try {
+      await fs.access(mbtPropsFullPath, fs.constants.F_OK | fs.constants.R_OK);
+      _logger.debug(`Located [${mbtPropsFullPath}]`);
+    } catch (error: any) {
+      const err = `Failed to locate [${mbtPropsFullPath}]: ${error.message}`;
+      _logger.error(err);
+      throw new Error(err);
+    }
+  }
+
   private static async runHpToolsLauncher(mbtPropsFullPath: string): Promise<ExitCode> {
     _logger.debug(`runHpToolsLauncher: mbtPropsFullPath=[${mbtPropsFullPath}] ...`);
-    await this.ensureHpToolsLauncher();
+    await this.ensureHTLExists();
+    await this.ensureMbtPropsExists(mbtPropsFullPath);
     const actionPath = process.env.GITHUB_ACTION_PATH!; // e.g., C:\GitHub_runner\_work\_actions\dorin7bogdan\github-action-ft-integration\main
     const binPath = path.join(actionPath, 'bin');
     const args = ['-paramfile', mbtPropsFullPath];
