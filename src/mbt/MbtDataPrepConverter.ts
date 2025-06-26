@@ -14,7 +14,7 @@ export default class MbtDataPrepConverter {
         const unitPathTmp = calcByExpr(unit.pathInScm, /(.*)\\Action/, 1);
         unit.testPath = `${repoFolderPath}\\${unitPathTmp}`;
         const action = calcByExpr(unit.pathInScm, /:(.*)/, 1);
-        const actionPath = escapePropVal("${repoFolderPath}\\${unitPathTmp}");
+        const actionPath = escapePropVal(`${repoFolderPath}\\${unitPathTmp}`);
         let script = `\\r\\nLoadAndRunAction "${actionPath}","${action}"`;
         if (unit?.parameters?.length) {
           script += `,rngAll${this.extractActionParams(unit.parameters)}`;
