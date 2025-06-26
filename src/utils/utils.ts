@@ -349,7 +349,7 @@ const getApiTestDocument = async (dirPath: string): Promise<Document | null> => 
 }
 
 const getFileIfExist = async (dirPath: string, fileName: string): Promise<string | null> => {
-  const filePath = `${dirPath}\\${fileName}`;
+  const filePath = path.join(dirPath, fileName);
   try {
     await fs.access(filePath);
     return filePath;
@@ -359,9 +359,25 @@ const getFileIfExist = async (dirPath: string, fileName: string): Promise<string
   }
 }
 
-function formatTimestamp(): string { // ddMMyyyyHHmmssSSS
-  const d = new Date();
-  return `${d.getDate().toString().padStart(2, '0')}${(d.getMonth() + 1).toString().padStart(2, '0')}${d.getFullYear()}${d.getHours().toString().padStart(2, '0')}${d.getMinutes().toString().padStart(2, '0')}${d.getSeconds().toString().padStart(2, '0')}${d.getMilliseconds().toString().padStart(3, '0')}`;
+const formatTimestamp = (): string => { // ddMMyyyyHHmmssSSS
+  const now = new Date();
+  const pad = (n: number, width = 2) => n.toString().padStart(width, '0');
+
+  const day = pad(now.getDate());
+  const month = pad(now.getMonth() + 1); // Months are 0-based
+  const year = now.getFullYear();
+  const hours = pad(now.getHours());
+  const minutes = pad(now.getMinutes());
+  const seconds = pad(now.getSeconds());
+  const milliseconds = pad(now.getMilliseconds(), 3);
+
+  return `${day}${month}${year}${hours}${minutes}${seconds}${milliseconds}`;
 }
 
-export { getHeadCommitSha, isBlank, isTestMainFile, getTestType, getParentFolderFullPath, saveSyncedCommit, getSyncedCommit, getSyncedTimestamp, extractWorkflowFileName, isVersionGreaterOrEqual, sleep, escapeQueryVal, getTestPathPrefix, extractScmTestPath, extractScmPathFromActionPath, extractActionLogicalNameFromActionPath, extractActionNameFromActionPath, calcByExpr, getSafeDomParser, extractXmlFromTspOrMtrFile, getGuiTestDocument, getApiTestDocument, getFileIfExist, formatTimestamp };
+const escapePropVal = (val: string): string => {
+  return val.replace(/\\/g, '\\\\')
+    .replace(/:/g, '\\:')
+    .replace(/=/g, '\\=');
+}
+
+export { getHeadCommitSha, isBlank, isTestMainFile, getTestType, getParentFolderFullPath, saveSyncedCommit, getSyncedCommit, getSyncedTimestamp, extractWorkflowFileName, isVersionGreaterOrEqual, sleep, escapeQueryVal, getTestPathPrefix, extractScmTestPath, extractScmPathFromActionPath, extractActionLogicalNameFromActionPath, extractActionNameFromActionPath, calcByExpr, getSafeDomParser, extractXmlFromTspOrMtrFile, getGuiTestDocument, getApiTestDocument, getFileIfExist, formatTimestamp, escapePropVal };

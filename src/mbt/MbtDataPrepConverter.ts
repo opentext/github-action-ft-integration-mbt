@@ -1,4 +1,4 @@
-import { calcByExpr } from "../utils/utils";
+import { calcByExpr, escapePropVal } from "../utils/utils";
 import MbtTestData, { UnitDetails, MbtScriptData, TestParam, MbtDataSet, MbtTestInfo } from '../mbt/MbtTestData';
 import { Buffer } from 'buffer';
 import { Logger } from '../utils/logger';
@@ -13,13 +13,14 @@ export default class MbtDataPrepConverter {
       .map(unit => {
         const unitPathTmp = calcByExpr(unit.pathInScm, /(.*)\\Action/, 1);
         unit.testPath = `${repoFolderPath}\\${unitPathTmp}`;
-
-        let script = `\r\nLoadAndRunAction "${repoFolderPath}\\${unitPathTmp}","${calcByExpr(unit.pathInScm, /:(.*)/, 1)}"`;
+        const action = calcByExpr(unit.pathInScm, /:(.*)/, 1);
+        const actionPath = escapePropVal("${repoFolderPath}\\${unitPathTmp}");
+        let script = `\\r\\nLoadAndRunAction "${actionPath}","${action}"`;
         if (unit?.parameters?.length) {
           script += `,rngAll${this.extractActionParams(unit.parameters)}`;
         }
 
-        script += `\r\nIf Reporter.CurrentActionIterationStatus = 1 Then\r\nExitAction\r\nEnd If`;
+        script += `\\r\\nIf Reporter.CurrentActionIterationStatus \\= 1 Then\\r\\nExitAction\\r\\nEnd If`;
         return { unitId: unit.unitId, testPath: unit.testPath, basicScript: script } as MbtScriptData;
       });
   }

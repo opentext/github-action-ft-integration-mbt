@@ -4,82 +4,58 @@ import { spawn } from 'child_process';
 import https from 'https';
 import { Logger } from '../utils/logger';
 import { TestResources, RecoveryScenarioData } from './TestResources';
-import { formatTimestamp, getGuiTestDocument } from '../utils/utils';
+import { escapePropVal, formatTimestamp, getGuiTestDocument } from '../utils/utils';
 import { TspParseError } from '../utils/TspParseError';
 import { MbtScriptData, MbtTestInfo } from './MbtTestData';
 import { ExitCode } from './ExitCode';
 
 const _logger = new Logger('MbtPreTestExecuter');
-const _workDir = process.cwd();
-const _exePath = path.join(_workDir, 'HpToolsLauncher.exe');
+const HP_TL_EXE = 'HpToolsLauncher.exe';
 
 export default class MbtPreTestExecuter {
   public static async preProcess(mbtTestInfos: MbtTestInfo[]): Promise<ExitCode> {
     _logger.debug(`preProcess: mbtTestInfos.length=${mbtTestInfos.length} ...`);
     const mbtPropsFullPath = await this.createMbtPropsFile(mbtTestInfos);
-    await this.ensureHpToolsLauncher();
     const exitCode = await this.runHpToolsLauncher(mbtPropsFullPath);
     return exitCode;
   }
 
   private static async ensureHpToolsLauncher(): Promise<void> {
-    const repo = process.env.GITHUB_ACTION_REPOSITORY; // e.g., dorin7bogdan/github-action-ft-integration
-    const ref = process.env.GITHUB_ACTION_REF; // e.g., main
-    _logger.debug(`ensureHpToolsLauncher: repo=[${repo}], ref=[${ref}] ...`);
-    if (!repo) {
-      const errorMsg = `Missing environment variable: GITHUB_ACTION_REPOSITORY`;
-      _logger.error(errorMsg);
-      throw new Error(errorMsg);
+    const actionPath = process.env.GITHUB_ACTION_PATH; // e.g., C:\GitHub_runner\_work\_actions\dorin7bogdan\github-action-ft-integration\main
+    _logger.debug(`ensureHpToolsLauncher: actionPath=[${actionPath}] ...`);
+    if (!actionPath) {
+      const err = `Missing environment variable: GITHUB_ACTION_PATH`;
+      _logger.error(err);
+      throw new Error(err);
     }
 
-    const exeUrl = `https://raw.githubusercontent.com/${repo}/${ref ?? "main"}/bin/HpToolsLauncher.exe`;
+    const exeFullPath = path.join(actionPath, 'bin', HP_TL_EXE);
 
     try {
-      // Check if executable already exists
-      await fs.access(_exePath, fs.constants.F_OK);
-      _logger.debug(`HpToolsLauncher.exe already exists at ${_workDir}`);
-    } catch {
-      _logger.debug(`Checking URL validity: [${exeUrl}]`);
-      await new Promise<void>((resolve, reject) => {
-        const req = https.request(exeUrl, { method: 'HEAD' }, (res) => {
-          if (res.statusCode !== 200) {
-            return reject(new Error(`Invalid URL: HTTP ${res.statusCode}`));
-          }
-          resolve();
-        });
-        req.on('error', reject);
-        req.end();
-      });
-
-      _logger.debug(`Downloading HpToolsLauncher.exe from ${exeUrl}`);
-      const exeBuffer = await new Promise<Buffer>((resolve, reject) => {
-        https.get(exeUrl, (res) => {
-          if (res.statusCode !== 200) {
-            return reject(new Error(`Failed to download: HTTP ${res.statusCode}`));
-          }
-          const chunks: Buffer[] = [];
-          res.on('data', (chunk) => chunks.push(chunk));
-          res.on('end', () => resolve(Buffer.concat(chunks)));
-          res.on('error', reject);
-        }).on('error', reject);
-      });
-
-      // Save executable to disk
-      await fs.writeFile(_exePath, exeBuffer);
-      _logger.info(`Saved HpToolsLauncher.exe to ${_workDir}`);
+      await fs.access(exeFullPath, fs.constants.F_OK);
+      _logger.debug(`Located [${exeFullPath}]`);
+    } catch (error: any) {
+      const err = `Failed to locate [${exeFullPath}]: ${error.message}`;
+      _logger.error(err);
+      throw new Error(err);
     }
   }
 
   private static async runHpToolsLauncher(mbtPropsFullPath: string): Promise<ExitCode> {
+    _logger.debug(`runHpToolsLauncher: mbtPropsFullPath=[${mbtPropsFullPath}] ...`);
+    await this.ensureHpToolsLauncher();
+    const actionPath = process.env.GITHUB_ACTION_PATH!; // e.g., C:\GitHub_runner\_work\_actions\dorin7bogdan\github-action-ft-integration\main
+    const binPath = path.join(actionPath, 'bin');
     const args = ['-paramfile', mbtPropsFullPath];
-
     try {
-      await fs.access(_exePath, fs.constants.F_OK | fs.constants.X_OK);
-      _logger.info(`HpToolsLauncher.exe ${args.join(' ')}`);
+      await fs.access(path.join(binPath, HP_TL_EXE), fs.constants.F_OK | fs.constants.X_OK);
+      _logger.info(`runHpToolsLauncher: ${HP_TL_EXE} ${args.join(' ')}`);
 
       return await new Promise<ExitCode>((resolve, reject) => {
-        const launcher = spawn(_exePath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
-
+        const launcher = spawn(HP_TL_EXE, args, {
+          stdio: ['ignore', 'pipe', 'pipe'],
+          cwd: binPath, // Set working directory to action's bin folder
+        });
         launcher.stdout.on('data', (data) => {
           const msg = data?.toString().trim();
           msg && _logger.info(msg);
@@ -114,14 +90,27 @@ export default class MbtPreTestExecuter {
   private static async createMbtPropsFile(testInfos: MbtTestInfo[]): Promise<string> {
     if (!testInfos.length) return '';
     _logger.debug(`createMbtPropsFile: testInfos.length=${testInfos.length} ...`);
-    const workDir = process.cwd();
-    const mbtPropsPath = path.join(workDir, "___mbt");
+    const tempDir = process.env.RUNNER_TEMP; // e.g., C:\GitHub_runner\_work\_temp\
+    if (!tempDir) {
+      const err = `Missing environment variable: RUNNER_TEMP`;
+      _logger.error(err);
+      throw new Error(err);
+    }
+    // Check read/write access to RUNNER_TEMP
+    try {
+      await fs.access(tempDir, fs.constants.R_OK | fs.constants.W_OK);
+      _logger.debug(`Read/write access confirmed for [${tempDir}]`);
+    } catch (error: any) {
+      const err = `No read/write access to [${tempDir}]: ${error.message}`;
+      _logger.error(err);
+      throw new Error(err);
+    }
 
     const props: { [key: string]: string } = {
       runType: 'MBT',
       resultsFilename: 'must be here',
-      parentFolder: mbtPropsPath,
-      repoFolder: workDir,
+      parentFolder: escapePropVal(tempDir),
+      repoFolder: escapePropVal(process.cwd()),
     };
     await Promise.all(testInfos.map(async (testInfo, i) => {
       const idx = i + 1;
@@ -129,14 +118,13 @@ export default class MbtPreTestExecuter {
       props[`package${idx}`] = `_${idx}`;
       props[`script${idx}`] = await this.updateTestScriptResources(testInfo.scriptData);
       props[`unitIds${idx}`] = testInfo.unitIds.join(';');
-      props[`underlyingTests${idx}`] = testInfo.underlyingTests.join(';');
+      props[`underlyingTests${idx}`] = escapePropVal(testInfo.underlyingTests.join(';'));
       props[`datableParams${idx}`] = testInfo.encodedIterationsStr;
     }));
 
-    const mbtPropsFullPath = path.join(workDir, `mbt_props_${formatTimestamp()}.txt`);
+    const mbtPropsFullPath = path.join(tempDir, `mbt_props_${formatTimestamp()}.txt`);
 
     try {
-      await fs.mkdir(mbtPropsPath, { recursive: true });
       await fs.writeFile(mbtPropsFullPath, Object.entries(props).map(([k, v]) => `${k}=${v}`).join('\n'));
     } catch (error: any) {
       _logger.error(`createMbtPropsFile: ${error.message}`);
@@ -154,7 +142,7 @@ export default class MbtPreTestExecuter {
     };
 
     try {
-      const doc = await getGuiTestDocument(`${testPath}\\Test.tsp`);
+      const doc = await getGuiTestDocument(`${testPath}`);
       if (!doc) {
         throw new TspParseError("No document parsed");
       }
@@ -162,7 +150,7 @@ export default class MbtPreTestExecuter {
       const flNodes = doc.getElementsByTagName('FuncLib');
       for (let i = 0; i < flNodes.length; i++) {
         const fl = flNodes.item(i)?.textContent;
-        fl && content.functionLibraries.push(`${testPath}/${fl}`);
+        fl && content.functionLibraries.push(path.join(testPath, fl));
       }
 
       const rsNode = doc.getElementsByTagName('RecoveryScenarios').item(0);
@@ -171,7 +159,8 @@ export default class MbtPreTestExecuter {
         rsParts.forEach(rsPart => {
           const rsAsArray = rsPart.split('|');
           if (rsAsArray.length > 1) {
-            const rsData: RecoveryScenarioData = { path: `${testPath}/${rsAsArray[0]}`, name: rsAsArray[1] };
+            const rsPath = path.join(testPath, rsAsArray[0]);
+            const rsData: RecoveryScenarioData = { path: rsPath, name: rsAsArray[1] };
             content.recoveryScenarioData.push(rsData);
           }
         });
@@ -200,14 +189,14 @@ export default class MbtPreTestExecuter {
         const testResources = await this.extractTestResources(testPath);
 
         if (testResources.functionLibraries.length) {
-          script += 'RestartFLEngine\r\n';
+          script += 'RestartFLEngine\\r\\n';
           for (const fl of testResources.functionLibraries) {
-            script += ` LoadFunctionLibrary "${fl}"\r\n`;
+            script += ` LoadFunctionLibrary "${escapePropVal(fl)}"\\r\\n`;
           }
         }
 
         if (testResources.recoveryScenarioData.length) {
-          const scenarios = testResources.recoveryScenarioData.map(rs => `"${rs.path}|${rs.name}|1|1*"`).join(',');
+          const scenarios = testResources.recoveryScenarioData.map(rs => `"${escapePropVal(rs.path)}|${rs.name}|1|1*"`).join(',');
           script += `LoadRecoveryScenario ${scenarios}`;
         }
       }
@@ -217,7 +206,7 @@ export default class MbtPreTestExecuter {
       index++;
     }
 
-    return scriptLines.join('\r\n');
+    return scriptLines.join('\\r\\n');
   }
 
   private static async isTestFolder(testPath: string): Promise<boolean> {
