@@ -1,114 +1,24 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
-import { spawn } from 'child_process';
 import { Logger } from '../utils/logger';
 import { TestResources, RecoveryScenario } from './TestResources';
-import { escapePropVal, formatTimestamp, getGuiTestDocument } from '../utils/utils';
+import { checkFileExists, escapePropVal, formatTimestamp, getGuiTestDocument } from '../utils/utils';
 import { TspParseError } from '../utils/TspParseError';
 import { MbtScriptData, MbtTestInfo } from './MbtTestData';
-import { ExitCode } from './ExitCode';
+import { ExitCode } from '../ft/ExitCode';
+import FTL from '../ft/FTL';
 
 const _logger = new Logger('MbtPreTestExecuter');
-const HP_TL_EXE = 'HpToolsLauncher.exe';
 
 export default class MbtPreTestExecuter {
   public static async preProcess(mbtTestInfos: MbtTestInfo[]): Promise<ExitCode> {
     _logger.debug(`preProcess: mbtTestInfos.length=${mbtTestInfos.length} ...`);
     const mbtPropsFullPath = await this.createMbtPropsFile(mbtTestInfos);
-    await this.ensureMbtPropsExists(mbtPropsFullPath);
-    const actionBinPath = await this.ensureHTLExists();
-    const exitCode = await this.runHpToolsLauncher(actionBinPath, mbtPropsFullPath);
+    await checkFileExists(mbtPropsFullPath);
+    const actionBinPath = await FTL.ensureToolExists();
+    const exitCode = await FTL.runTool(actionBinPath, mbtPropsFullPath);
+    _logger.debug(`preProcess: exitCode=${exitCode}`);
     return exitCode;
-  }
-
-  private static async ensureHTLExists(): Promise<string> {
-    _logger.debug(`ensureHTLExists: Checking for ${HP_TL_EXE} ...`);
-    const runnerWorkspace = process.env.RUNNER_WORKSPACE;
-    const actionRepo = process.env.GITHUB_ACTION_REPOSITORY;
-    const actionRef = process.env.GITHUB_ACTION_REF;
-
-    let err = "";
-    if (!runnerWorkspace) {
-      err = `Missing required environment variable: RUNNER_WORKSPACE.`;
-    } else if (!actionRepo) {
-      err = `Missing required environment variable: GITHUB_ACTION_REPOSITORY.`;
-    } else if (!actionRef) {
-      err = `Missing required environment variable: GITHUB_ACTION_REF.`;
-    }
-    if (err) {
-      _logger.error(err);
-      throw new Error(err);
-    }
-
-    // Extract base runner path (remove the repo name from the end)
-    const runnerRoot = path.resolve(runnerWorkspace!, '..'); // Go up one level
-    const [owner, repo] = actionRepo!.split('/');
-    const actionBinPath = path.join(runnerRoot, '_actions', owner, repo, actionRef!, 'bin');
-    const exeFullPath = path.join(actionBinPath, HP_TL_EXE);
-    try {
-      await fs.access(exeFullPath, fs.constants.F_OK);
-      _logger.debug(`Located [${exeFullPath}]`);
-      return actionBinPath; // Return the bin path where HpToolsLauncher.exe is located
-    } catch (error: any) {
-      const err = `Failed to locate [${exeFullPath}]: ${error.message}`;
-      _logger.error(err);
-      throw new Error(err);
-    }
-  }
-
-  private static async ensureMbtPropsExists(mbtPropsFullPath: string): Promise<void> {
-    try {
-      _logger.debug(`ensureMbtPropsExists: mbtPropsFullPath=[${mbtPropsFullPath}] ...`);
-      await fs.access(mbtPropsFullPath, fs.constants.F_OK | fs.constants.R_OK);
-      _logger.debug(`Located [${mbtPropsFullPath}]`);
-    } catch (error: any) {
-      const err = `Failed to locate [${mbtPropsFullPath}]: ${error.message}`;
-      _logger.error(err);
-      throw new Error(err);
-    }
-  }
-
-  private static async runHpToolsLauncher(binPath: string, mbtPropsFullPath: string): Promise<ExitCode> {
-    _logger.debug(`runHpToolsLauncher: binPath=[${binPath}], mbtPropsFullPath=[${mbtPropsFullPath}] ...`);
-    const args = ['-paramfile', mbtPropsFullPath];
-    try {
-      await fs.access(path.join(binPath, HP_TL_EXE), fs.constants.F_OK | fs.constants.X_OK);
-      _logger.info(`${HP_TL_EXE} ${args.join(' ')}`);
-
-      return await new Promise<ExitCode>((resolve, reject) => {
-        const launcher = spawn(HP_TL_EXE, args, {
-          stdio: ['ignore', 'pipe', 'pipe'],
-          cwd: binPath, // Set working directory to action's bin folder
-        });
-        launcher.stdout.on('data', (data) => {
-          const msg = data?.toString().trim();
-          msg && _logger.info(msg);
-        });
-
-        launcher.stderr.on('data', (data) => {
-          const err = data?.toString().trim();
-          err && _logger.error(err);
-        });
-
-        launcher.on('error', (error) => {
-          reject(new Error(`Failed to start HpToolsLauncher: ${error.message}`));
-        });
-
-        launcher.on('close', (code) => {
-          _logger.debug(`runHpToolsLauncher: ExitCode=${code}`);
-          // Map exit code to ExitCode enum, default to Aborted for unknown codes
-          const exitCode = Object.values(ExitCode)
-            .filter((v): v is number => typeof v === 'number')
-            .includes(code ?? -3)
-            ? (code as ExitCode)
-            : ExitCode.Unkonwn;
-          resolve(exitCode);
-        });
-      });
-    } catch (error: any) {
-      _logger.error(`runHpToolsLauncher: ${error.message}`);
-      throw new Error(`Failed to run HpToolsLauncher: ${error.message}`);
-    }
   }
 
   private static async createMbtPropsFile(testInfos: MbtTestInfo[]): Promise<string> {

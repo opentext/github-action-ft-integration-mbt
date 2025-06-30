@@ -53,6 +53,8 @@ import MbtDataPrepConverter from './mbt/MbtDataPrepConverter';
 import { MbtTestInfo } from './mbt/MbtTestData';
 import TestData from './mbt/TestData';
 import MbtPreTestExecuter from './mbt/MbtPreTestExecuter';
+import { ExitCode } from './ft/ExitCode';
+import FtTestExecuter from './ft/FtTestExecuter';
 
 const _config = getConfig();
 const _logger: Logger = new Logger('eventHandler');
@@ -233,8 +235,11 @@ const handleExecutorEvent = async (executionId: number, suiteRunId: number, test
     mbtTestInfos.push(mbtTestInfo);
     _logger.debug(JSON.stringify(mbtTestInfo, null, 2));
   };
-  const exitCode = await MbtPreTestExecuter.preProcess(mbtTestInfos);
-  _logger.debug(`handleExecutorEvent: exitCode=${exitCode}`);
+  let exitCode = await MbtPreTestExecuter.preProcess(mbtTestInfos);
+  if (exitCode === ExitCode.Passed) {
+    exitCode = await FtTestExecuter.preProcess(mbtTestInfos);
+  }
+
   //TODO
 }
 

@@ -380,4 +380,32 @@ const escapePropVal = (val: string): string => {
     .replace(/=/g, '\\=');
 }
 
-export { getHeadCommitSha, isBlank, isTestMainFile, getTestType, getParentFolderFullPath, saveSyncedCommit, getSyncedCommit, getSyncedTimestamp, extractWorkflowFileName, isVersionGreaterOrEqual, sleep, escapeQueryVal, getTestPathPrefix, extractScmTestPath, extractScmPathFromActionPath, extractActionLogicalNameFromActionPath, extractActionNameFromActionPath, calcByExpr, getSafeDomParser, extractXmlFromTspOrMtrFile, getGuiTestDocument, getApiTestDocument, getFileIfExist, formatTimestamp, escapePropVal };
+const checkReadWriteAccess = async (dirPath: string): Promise<void> => {
+  if (!dirPath) {
+    const err = `Missing environment variable: RUNNER_WORKSPACE`;
+    _logger.error(err);
+    throw new Error(err);
+  }
+  // Check read/write access to RUNNER_WORKSPACE
+  try {
+    await fs.access(dirPath, fs.constants.R_OK | fs.constants.W_OK);
+    _logger.debug(`Read/write access confirmed for [${dirPath}]`);
+  } catch (error: any) {
+    const err = `No read/write access to [${dirPath}]: ${error.message}`;
+    _logger.error(err);
+    throw new Error(err);
+  }
+}
+const checkFileExists = async (fullPath: string): Promise <void> => {
+  try {
+    _logger.debug(`ensureFileExists: fullPath=[${fullPath}] ...`);
+    await fs.access(fullPath, fs.constants.F_OK | fs.constants.R_OK);
+    _logger.debug(`Located [${fullPath}]`);
+  } catch(error: any) {
+    const err = `Failed to locate [${fullPath}]: ${error.message}`;
+    _logger.error(err);
+    throw new Error(err);
+  }
+}
+
+export { getHeadCommitSha, isBlank, isTestMainFile, getTestType, getParentFolderFullPath, saveSyncedCommit, getSyncedCommit, getSyncedTimestamp, extractWorkflowFileName, isVersionGreaterOrEqual, sleep, escapeQueryVal, getTestPathPrefix, extractScmTestPath, extractScmPathFromActionPath, extractActionLogicalNameFromActionPath, extractActionNameFromActionPath, calcByExpr, getSafeDomParser, extractXmlFromTspOrMtrFile, getGuiTestDocument, getApiTestDocument, getFileIfExist, formatTimestamp, escapePropVal, checkReadWriteAccess, checkFileExists };
