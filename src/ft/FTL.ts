@@ -3,25 +3,31 @@ import { ExitCode } from '../ft/ExitCode';
 import * as fsp from 'fs/promises';
 import path from "path";
 import { Logger } from "../utils/logger";
-const _logger = new Logger("FTL");
+
 const HP_TL_EXE = 'HpToolsLauncher.exe';
+const _logger = new Logger("FTL");
+
 export default class FTL {
+  public static readonly FileSystem = "FileSystem";
+  public static readonly MBT = "MBT";
+  public static readonly _MBT = "___mbt";
   public static async ensureToolExists(): Promise<string> {
     _logger.debug(`ensureToolExists: Checking for ${HP_TL_EXE} ...`);
     const runnerWorkspace = process.env.RUNNER_WORKSPACE;
     const actionRepo = process.env.GITHUB_ACTION_REPOSITORY;
     const actionRef = process.env.GITHUB_ACTION_REF;
 
-    let err = "";
+    let missing = "";
     if (!runnerWorkspace) {
-      err = `Missing required environment variable: RUNNER_WORKSPACE.`;
+      missing = `RUNNER_WORKSPACE`;
     } else if (!actionRepo) {
-      err = `Missing required environment variable: GITHUB_ACTION_REPOSITORY.`;
+      missing = `GITHUB_ACTION_REPOSITORY`;
     } else if (!actionRef) {
-      err = `Missing required environment variable: GITHUB_ACTION_REF.`;
+      missing = `GITHUB_ACTION_REF`;
     }
-    if (err) {
-      _logger.error(err);
+    if (missing) {
+      const err = `Missing required environment variable: ${missing}`;
+      _logger.error(`ensureToolExists: ${err}`);
       throw new Error(err);
     }
 

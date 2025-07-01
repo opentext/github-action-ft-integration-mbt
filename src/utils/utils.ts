@@ -382,27 +382,27 @@ const escapePropVal = (val: string): string => {
 
 const checkReadWriteAccess = async (dirPath: string): Promise<void> => {
   if (!dirPath) {
-    const err = `Missing environment variable: RUNNER_WORKSPACE`;
-    _logger.error(err);
+    const err = `Missing environment variable RUNNER_WORKSPACE`;
+    _logger.error(`checkReadWriteAccess: ${err}`);
     throw new Error(err);
   }
   // Check read/write access to RUNNER_WORKSPACE
+  _logger.debug(`checkReadWriteAccess: [${dirPath}]`);
   try {
     await fs.access(dirPath, fs.constants.R_OK | fs.constants.W_OK);
-    _logger.debug(`Read/write access confirmed for [${dirPath}]`);
   } catch (error: any) {
-    const err = `No read/write access to [${dirPath}]: ${error.message}`;
+    const err = `checkReadWriteAccess: [${dirPath}] => ${error.message}`;
     _logger.error(err);
     throw new Error(err);
   }
 }
 const checkFileExists = async (fullPath: string): Promise <void> => {
   try {
-    _logger.debug(`ensureFileExists: fullPath=[${fullPath}] ...`);
+    _logger.debug(`ensureFileExists: [${fullPath}] ...`);
     await fs.access(fullPath, fs.constants.F_OK | fs.constants.R_OK);
     _logger.debug(`Located [${fullPath}]`);
   } catch(error: any) {
-    const err = `Failed to locate [${fullPath}]: ${error.message}`;
+    const err = `checkFileExists: Failed to locate [${fullPath}]: ${error.message}`;
     _logger.error(err);
     throw new Error(err);
   }

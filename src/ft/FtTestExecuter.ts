@@ -6,7 +6,7 @@ import { ExitCode } from './ExitCode';
 import FTL from './FTL';
 import { checkFileExists, checkReadWriteAccess, escapePropVal, formatTimestamp } from '../utils/utils';
 
-const _logger = new Logger('MbtPreTestExecuter');
+const _logger = new Logger('FtTestExecuter');
 
 export default class FtTestExecuter {
   public static async preProcess(uftTestInfos: UftTestInfo[]): Promise<ExitCode> {
@@ -30,7 +30,7 @@ export default class FtTestExecuter {
     const mtbxFullPath = await this.createMtbxFile(wsDir, testInfos);
     await checkFileExists(mtbxFullPath);
     const props: { [key: string]: string } = {
-      runType: 'FileSystem',
+      runType: FTL.FileSystem,
       Test1: escapePropVal(mtbxFullPath),
       resultsFilename: escapePropVal(resFullPath)
     };
@@ -56,7 +56,7 @@ export default class FtTestExecuter {
     testInfos.map(async (testInfo, i) => {
       const idx = i + 1;
       const name = testInfo.testName;
-      const fullPath = path.join(dirPath, `_${idx}`, name);
+      const fullPath = path.join(dirPath, FTL._MBT, `_${idx}`, name);
       xml += `<Mtbx>\n  <Test name="${name}" path="${fullPath}" />\n</Mtbx>\n`;
     });
 
