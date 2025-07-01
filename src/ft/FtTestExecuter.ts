@@ -22,12 +22,14 @@ export default class FtTestExecuter {
 
   private static async createPropsFile(testInfos: UftTestInfo[]): Promise<string> {
     if (!testInfos.length) return '';
-    _logger.debug(`createPropsFile: testInfos.length=${testInfos.length} ...`);
     const wsDir = process.env.RUNNER_WORKSPACE!; // e.g., C:\GitHub_runner\_work\ufto-tests\
+    const suffix = formatTimestamp();
+    const propsFullPath = path.join(wsDir, `props_${suffix}.txt`);
+    _logger.debug(`createPropsFile: [${propsFullPath}] ...`);
     await checkReadWriteAccess(wsDir);
 
-    const resFullPath = path.join(wsDir, `results_${formatTimestamp()}.xml`);
-    const mtbxFullPath = await this.createMtbxFile(wsDir, testInfos);
+    const resFullPath = path.join(wsDir, `results_${suffix}.xml`);
+    const mtbxFullPath = await this.createMtbxFile(wsDir, suffix, testInfos);
     await checkFileExists(mtbxFullPath);
     const props: { [key: string]: string } = {
       runType: FTL.FileSystem,
@@ -36,8 +38,6 @@ export default class FtTestExecuter {
     };
 
     //TODO add Mobile props
-
-    const propsFullPath = path.join(wsDir, `props_${formatTimestamp()}.txt`);
 
     try {
       await fs.writeFile(propsFullPath, Object.entries(props).map(([k, v]) => `${k}=${v}`).join('\n'));
@@ -49,8 +49,8 @@ export default class FtTestExecuter {
     return propsFullPath;
   }
 
-  private static async createMtbxFile(dirPath: string, testInfos: UftTestInfo[]): Promise<string> {
-    const mtbxFullPath = path.join(dirPath, `test_suite.mtbx`);
+  private static async createMtbxFile(dirPath: string, suffix: string, testInfos: UftTestInfo[]): Promise<string> {
+    const mtbxFullPath = path.join(dirPath, `test_suite_${suffix}.mtbx`);
     _logger.debug(`createMtbxFile: [${mtbxFullPath}]`);
     let xml = "";
     testInfos.map(async (testInfo, i) => {
