@@ -32,7 +32,7 @@ export default class FtTestExecuter {
     const props: { [key: string]: string } = {
       runType: 'FileSystem',
       Test1: escapePropVal(mtbxFullPath),
-      resultsFilename: resFullPath
+      resultsFilename: escapePropVal(resFullPath)
     };
 
     //TODO add Mobile props
