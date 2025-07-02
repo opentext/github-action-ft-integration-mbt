@@ -52,13 +52,14 @@ export default class FtTestExecuter {
   private static async createMtbxFile(dirPath: string, suffix: string, testInfos: UftTestInfo[]): Promise<string> {
     const mtbxFullPath = path.join(dirPath, `test_suite_${suffix}.mtbx`);
     _logger.debug(`createMtbxFile: [${mtbxFullPath}]`);
-    let xml = "";
+    let xml = "<Mtbx>";
     testInfos.map(async (testInfo, i) => {
       const idx = i + 1;
       const name = testInfo.testName;
       const fullPath = path.join(dirPath, FTL._MBT, `_${idx}`, name);
-      xml += `<Mtbx>\n  <Test name="${name}" path="${fullPath}" />\n</Mtbx>\n`;
+      xml += `\n  <Test name="${name}" path="${fullPath}" />`;
     });
+    xml += `\n</Mtbx>`;
 
     await fs.writeFile(mtbxFullPath, xml, 'utf8');
     return mtbxFullPath;
