@@ -79,7 +79,7 @@ export default class OctaneClient {
   private static CI_API_URL = `/api/shared_spaces/${this._config.octaneSharedSpace}/workspaces/${this._config.octaneWorkspace}`;
 
   public static sendEvents = async (events: CiEvent[], instanceId: string, url: string): Promise<void> => {
-    this._logger.debug(`Sending events to server-side app (instanceId: ${instanceId}): ${JSON.stringify(events)}`);
+    this._logger.debug(`sendEvents: instanceId=[${instanceId}], events=${JSON.stringify(events)}`);
 
     const ciServerInfo: CiServerInfo = {
       instanceId,

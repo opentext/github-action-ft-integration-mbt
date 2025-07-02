@@ -35,7 +35,7 @@ import { getEventType } from './service/ciEventsService';
 import { Logger } from './utils/logger';
 import { saveSyncedCommit, getSyncedCommit, getSyncedTimestamp } from './utils/utils';
 import { context } from '@actions/github';
-import { getOrCreateTestRunner, sendExecutorStartEvent } from './service/executorService';
+import { getOrCreateTestRunner, sendExecutorFinishEvent, sendExecutorStartEvent } from './service/executorService';
 import Discovery from './discovery/Discovery';
 import { UftoParamDirection } from './dto/ft/UftoParamDirection';
 import { OctaneStatus } from './dto/ft/OctaneStatus';
@@ -54,8 +54,7 @@ import { MbtTestInfo } from './mbt/MbtTestData';
 import MbtPreTestExecuter from './mbt/MbtPreTestExecuter';
 import { ExitCode } from './ft/ExitCode';
 import FtTestExecuter from './ft/FtTestExecuter';
-import { CiCausesType } from './dto/octane/events/CiTypes';
-import { convertRootCauseType } from './service/eventCauseBuilder';
+import { Result } from './dto/octane/events/CiTypes';
 
 const _config = getConfig();
 const _logger: Logger = new Logger('eventHandler');
@@ -199,7 +198,9 @@ export const handleCurrentEvent = async (): Promise<void> => {
 };
 
 const handleExecutorEvent = async (event: ActionsEvent, defaultParams: CiParam[], wfis: WorkflowInputs, branch: string, workflowFileName: string): Promise<ExitCode> => {
-  const startTime = new Date().getTime();
+  const startTime = event.workflow_run?.run_started_at ?
+    new Date(event.workflow_run.run_started_at).getTime() :
+    new Date().getTime();
   const workflowRunId = event.workflow_run?.id ?? 0;
   const workflowRunNum = event.workflow_run?.run_number ?? 0;
   const workDir = process.cwd();
@@ -208,12 +209,13 @@ const handleExecutorEvent = async (event: ActionsEvent, defaultParams: CiParam[]
   const { ciServerInstanceId, ciServerName, executorName, ciId, parentCiId } = getCiPredefinedVals(branch, workflowFileName);
   const ciServer = await OctaneClient.getCiServer(ciServerInstanceId, ciServerName);
   if (!ciServer) {
-    _logger.error(`Could not find CI server with instanceId: ${ciServerInstanceId}`);
+    _logger.error(`handleExecutorEvent: Could not find CI server with instanceId: ${ciServerInstanceId}`);
     return ExitCode.Aborted;
   };
   // TODO updatePluginVersionIfNeeded ?
   const login = event.workflow_run?.triggering_actor.login;
-  const startEventCauses = [
+  //TODO is startEventCauses really needed?
+/*  const startEventCauses = [
     {
       buildCiId: `${workflowRunId}`,
       project: ciId,
@@ -230,13 +232,11 @@ const handleExecutorEvent = async (event: ActionsEvent, defaultParams: CiParam[]
         }
       ]
     }
-  ];
+  ];*/
 
-  //await sendExecutorStartEvent(event, executorName, ciId, parentCiId, `${workflowRunId}`, `${workflowRunNum}`, branch, startTime, _config.repoUrl, execParams, startEventCauses, ciServer);
+  await sendExecutorStartEvent(executorName, ciId, parentCiId, `${workflowRunId}`, `${workflowRunNum}`, branch, startTime, ciServer.url, execParams, ciServerInstanceId);
 
   const testDataMap = TestParamsParser.parseTestData(wfis.testsToRun);
-  _logger.debug("TestData: ", testDataMap);
-
   const mbtTestSuiteData = await OctaneClient.getMbtTestSuiteData(parseInt(wfis.suiteRunId));
   const mbtTestInfos: MbtTestInfo[] = [];
   const repoFolderPath = workDir;
@@ -250,9 +250,13 @@ const handleExecutorEvent = async (event: ActionsEvent, defaultParams: CiParam[]
   if (exitCode === ExitCode.Passed) {
     exitCode = await FtTestExecuter.preProcess(mbtTestInfos);
   }
-  return exitCode;
 
-  //TODO
+  // TODO check TestResultServiceImpl.publishResultsToOctane and updateExecutionFlowDetailParameter
+  const res = (exitCode === ExitCode.Passed ? Result.SUCCESS : (exitCode === ExitCode.Unstable ? Result.UNSTABLE : Result.FAILURE));
+  await sendExecutorFinishEvent(executorName, ciId, parentCiId, `${workflowRunId}`, `${workflowRunNum}`, branch, startTime, ciServer.url, execParams, ciServerInstanceId, res);
+  //TODO check publishExecutionStateEvent from OctaneEventServiceImpl.java CIEventType.CHANGE_EXEC_STATE("change_exec_state");
+
+  return exitCode;
 }
 
 const isMinSyncIntervalElapsed = async (minSyncInterval: number) => {

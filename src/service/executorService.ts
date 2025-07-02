@@ -29,19 +29,16 @@
 
 import OctaneClient from '../client/octaneClient';
 import { getConfig } from '../config/config';
-import ActionsEvent from '../dto/github/ActionsEvent';
-import CiEventCause from '../dto/octane/events/CiEventCause';
+import CiEvent from '../dto/octane/events/CiEvent';
 import CiParam from '../dto/octane/events/CiParam';
 import {
   CiEventType,
-  MultiBranchType,
-  PhaseType
+  PhaseType,
+  Result
 } from '../dto/octane/events/CiTypes';
 import CiExecutor from '../dto/octane/general/CiExecutor';
 import CiJob from '../dto/octane/general/CiJob';
-import CiServer from '../dto/octane/general/CiServer';
 import { Logger } from '../utils/logger';
-import { generateRootExecutorEvent } from './ciEventsService';
 
 const _config = getConfig();
 const _logger: Logger = new Logger('executorService');
@@ -57,68 +54,65 @@ const getOrCreateTestRunner = async (name: string, ciServerId: number, ciJob: Ci
 };
 
 const sendExecutorStartEvent = async (
-  event: ActionsEvent,
   executorName: string,
   executorCiId: string,
   parentCiId: string,
   buildCiId: string,
   runNumber: string,
-  branchName: string,
+  branch: string,
   startTime: number,
   baseUrl: string,
-  parameters: CiParam[],
-  causes: CiEventCause[],
-  ciServer: CiServer
+  params: CiParam[],
+  ciServerInstanceId: string
 ): Promise<void> => {
-  const startEvent = generateRootExecutorEvent(
-    event,
-    executorName,
-    executorCiId,
+  const evt: CiEvent = {
     buildCiId,
-    runNumber,
-    branchName,
-    startTime,
-    CiEventType.STARTED,
-    parameters,
-    causes,
-    MultiBranchType.CHILD,
+    eventType: CiEventType.STARTED,
+    number: runNumber,
     parentCiId,
-    PhaseType.INTERNAL
-  );
+    project: executorCiId,
+    projectDisplayName: executorName,
+    startTime,
+    branch,
+    parameters: params,
+    phaseType: PhaseType.INTERNAL,
+    skipValidation: true
+  };
 
-  await OctaneClient.sendEvents([startEvent], ciServer.instance_id, baseUrl);
+  await OctaneClient.sendEvents([evt], ciServerInstanceId, baseUrl);
 };
 
 const sendExecutorFinishEvent = async (
-  event: ActionsEvent,
   executorName: string,
   executorCiId: string,
   parentCiId: string,
   buildCiId: string,
   runNumber: string,
-  branchName: string,
+  branch: string,
   startTime: number,
   baseUrl: string,
-  parameters: CiParam[],
-  causes: CiEventCause[],
-  ciServer: CiServer
+  params: CiParam[],
+  ciServerInstanceId: string,
+  result: Result
 ): Promise<void> => {
-  const finishEvent = generateRootExecutorEvent(
-    event,
-    executorName,
-    executorCiId,
-    buildCiId,
-    runNumber,
-    branchName,
+  const evt: CiEvent = {
+    buildCiId: buildCiId,
+    eventType: CiEventType.FINISHED,
+    number: runNumber,
+    parentCiId,
+    project: executorCiId,
+    projectDisplayName: executorName,
     startTime,
-    CiEventType.FINISHED,
-    parameters,
-    causes,
-    MultiBranchType.CHILD,
-    parentCiId
-  );
+    branch,
+    parameters: params,
+    phaseType: PhaseType.INTERNAL,
+    duration: 0,
+    skipValidation: true,
+    testResultExpected: true,
+    result
+  };
 
-  await OctaneClient.sendEvents([finishEvent], ciServer.instance_id, baseUrl);
+  await OctaneClient.sendEvents([evt], ciServerInstanceId, baseUrl);
 };
 
 const buildExecutorName = (

@@ -28,18 +28,11 @@
  */
 
 import GitHubClient from '../client/githubClient';
-import ActionsEvent from '../dto/github/ActionsEvent';
 import ActionsEventType from '../dto/github/ActionsEventType';
 import { ActionsJob } from '../dto/github/ActionsJob';
 import WorkflowRun from '../dto/github/WorkflowRun';
 import WorkflowRunStatus from '../dto/github/WorkflowRunStatus';
-import CiEvent from '../dto/octane/events/CiEvent';
-import CiEventCause from '../dto/octane/events/CiEventCause';
-import CiParam from '../dto/octane/events/CiParam';
 import {
-  CiEventType,
-  MultiBranchType,
-  PhaseType,
   Result
 } from '../dto/octane/events/CiTypes';
 import { sleep } from '../utils/utils';
@@ -128,48 +121,6 @@ const getNotFinishedRuns = async (
   return runs.filter(run => run.id !== currentRun.id);
 };
 
-const generateRootExecutorEvent = (
-  event: ActionsEvent,
-  executorName: string,
-  executorCiId: string,
-  buildCiId: string,
-  runNumber: string,
-  branchName: string,
-  startTime: number,
-  eventType: CiEventType,
-  parameters: CiParam[],
-  causes: CiEventCause[],
-  multiBranchType: MultiBranchType,
-  parentCiId: string,
-  phaseType?: PhaseType
-): CiEvent => {
-  const executorEvent: CiEvent = {
-    buildCiId,
-    eventType,
-    number: runNumber,
-    parentCiId,
-    project: executorCiId,
-    projectDisplayName: executorName,
-    multiBranchType,
-    startTime,
-    branch: branchName,
-    parameters,
-    causes,
-    phaseType,
-    skipValidation: true
-  };
-
-  if (CiEventType.FINISHED === eventType) {
-    executorEvent.duration = getRunDuration(
-      event.workflow_run?.run_started_at,
-      event.workflow_run?.updated_at
-    );
-    executorEvent.result = getRunResult(event.workflow_run?.conclusion);
-  }
-
-  return executorEvent;
-};
-
 const getEventType = (event: string | null | undefined): ActionsEventType => {
   switch (event) {
     case 'workflow_dispatch':
@@ -234,7 +185,6 @@ const getRunResult = (conclusion: string | undefined | null): Result => {
 };
 
 export {
-  generateRootExecutorEvent,
   getEventType,
   pollForJobsOfTypeToFinish
 };
