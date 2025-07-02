@@ -39,3 +39,5 @@ export type WorkflowInputs = {
   suiteRunId: string;
   testsToRun: string;
 }
+
+export type WorkflowInputsKeys = keyof WorkflowInputs;

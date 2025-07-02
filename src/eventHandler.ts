@@ -45,13 +45,12 @@ import { getOrCreateCiJob } from './service/ciJobService';
 import { dispatchDiscoveryResults } from './discovery/mbtDiscoveryResultDispatcher';
 import * as path from 'path';
 import GitHubClient from './client/githubClient';
-import { WorkflowInputs } from './dto/github/Workflow';
+import { WorkflowInputs, WorkflowInputsKeys } from './dto/github/Workflow';
 import TestParamsParser from './mbt/TestParamsParser';
 import { getParamsFromConfig } from './service/parametersService';
 import CiParam from './dto/octane/events/CiParam';
 import MbtDataPrepConverter from './mbt/MbtDataPrepConverter';
 import { MbtTestInfo } from './mbt/MbtTestData';
-import TestData from './mbt/TestData';
 import MbtPreTestExecuter from './mbt/MbtPreTestExecuter';
 import { ExitCode } from './ft/ExitCode';
 import FtTestExecuter from './ft/FtTestExecuter';
@@ -60,6 +59,7 @@ import { convertRootCauseType } from './service/eventCauseBuilder';
 
 const _config = getConfig();
 const _logger: Logger = new Logger('eventHandler');
+const _requiredKeys: WorkflowInputsKeys[] = ['executionId', 'suiteId', 'suiteRunId', 'testsToRun'];
 
 export const handleCurrentEvent = async (): Promise<void> => {
   _logger.info('BEGIN handleEvent ...');
@@ -290,14 +290,12 @@ function hasExecutorKeys(params: CiParam[]): boolean {
   if (!params?.length) {
     return false;
   }
-  const requiredKeys: (keyof WorkflowInputs)[] = Object.keys({} as WorkflowInputs).map(key => key as keyof WorkflowInputs);
-  return requiredKeys.every(key => params.some(param => param.name === key));
+  return _requiredKeys.every(key => params.some(param => param.name === key));
 }
 
 // Helper function to check if all values in wfi are non-empty and different from their corresponding defaults
-function hasNoEmptyNorDefaultValue(wfi: WorkflowInputs, defaults: Record<string, string>): boolean {
-  const keys: (keyof WorkflowInputs)[] = Object.keys({} as WorkflowInputs).map(key => key as keyof WorkflowInputs);
-  return keys.every(key => wfi[key] && wfi[key] !== defaults[key]);
+function hasNoEmptyNorDefaultValue(wfis: WorkflowInputs, defaults: Record<string, string>): boolean {
+  return _requiredKeys.every(key => wfis[key] && wfis[key] !== defaults[key]);
 }
 
 // Function to generate execParams based on defaultParams and wfi
