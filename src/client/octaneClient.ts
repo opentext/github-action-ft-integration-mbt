@@ -89,16 +89,9 @@ export default class OctaneClient {
       sendingTime: new Date().getTime()
     };
 
-    const eventsToSend: CiEventsList = {
-      server: ciServerInfo,
-      events
-    };
+    const eventsToSend: CiEventsList = { server: ciServerInfo, events };
 
-    await this._octane.executeCustomRequest(
-      `${this.ANALYTICS_CI_INTERNAL_API_URL}/events`,
-      Octane.operationTypes.update,
-      eventsToSend
-    );
+    await this._octane.executeCustomRequest(`${this.ANALYTICS_CI_INTERNAL_API_URL}/events`, Octane.operationTypes.update, eventsToSend);
   };
 
   private static createCIServer = async (name: string, instanceId: string, url: string): Promise<CiServer> => {

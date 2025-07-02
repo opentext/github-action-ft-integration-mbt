@@ -232,8 +232,7 @@ const handleExecutorEvent = async (event: ActionsEvent, defaultParams: CiParam[]
     }
   ];
 
-  await sendExecutorStartEvent(event, executorName, ciId, parentCiId, `${workflowRunId}`, `${workflowRunNum}`, branch, startTime,
-    _config.repoUrl, execParams, startEventCauses, ciServer);
+  //await sendExecutorStartEvent(event, executorName, ciId, parentCiId, `${workflowRunId}`, `${workflowRunNum}`, branch, startTime, _config.repoUrl, execParams, startEventCauses, ciServer);
 
   const testDataMap = TestParamsParser.parseTestData(wfis.testsToRun);
   _logger.debug("TestData: ", testDataMap);

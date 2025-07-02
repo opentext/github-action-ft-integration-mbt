@@ -31,7 +31,7 @@ export default interface CiParam {
   name: string;
   value?: string;
   defaultValue?: string;
-  type?: string;
-  choices?: string[];
-  description?: string;
+  //type?: string;
+  //choices?: string[];
+  //description?: string;
 }

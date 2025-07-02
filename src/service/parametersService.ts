@@ -184,10 +184,10 @@ const deserializeParameters = (serializedParameters: string): CiParam[] => {
     parameters.push({
       name: key,
       value: String(stringValue),
-      defaultValue: '',
-      choices: [],
-      description: '',
-      type: 'string'
+      defaultValue: ''
+      //choices: [],
+      //description: '',
+      //type: 'string'
     });
     LOGGER.debug(
       `Found parameter in log files with {name='${key}', value='${stringValue}'}.`
@@ -249,17 +249,17 @@ const parseYamlToCiParameters = (yamlContent: string): CiParam[] => {
 
   for (const [name, details] of Object.entries(inputs)) {
     const inputDetails = details as {
-      description: string;
+      //description: string;
       default: string;
-      options: string[];
-      type: string;
+      //options: string[];
+      //type: string;
     };
     const ciParameter: CiParam = {
       name: name,
-      description: inputDetails.description,
+      //description: inputDetails.description,
       defaultValue: inputDetails.default,
-      choices: inputDetails.options,
-      type: 'string'
+      //choices: inputDetails.options,
+      //type: 'string'
     };
     ciParameters.push(ciParameter);
     LOGGER.debug(
