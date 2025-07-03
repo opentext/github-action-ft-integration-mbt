@@ -106,7 +106,7 @@ const sendExecutorFinishEvent = async (
     branch,
     parameters: params,
     phaseType: PhaseType.INTERNAL,
-    duration: 0,
+    duration: (startTime - new Date().getTime()),
     skipValidation: true,
     testResultExpected: true,
     result

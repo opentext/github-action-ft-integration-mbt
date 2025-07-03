@@ -27,7 +27,7 @@
  * limitations under the License.
  */
 
-import CiEventCause from './CiEventCause';
+//import CiEventCause from './CiEventCause';
 import CiParam from './CiParam';
 import { CiEventType, PhaseType, Result } from './CiTypes';
 
@@ -42,11 +42,11 @@ export default interface CiEvent {
   startTime: number;
   estimatedDuration?: number;
   duration?: number;
-  scmData?: Object;
+  //scmData?: Object;
   phaseType?: PhaseType;
-  causes?: CiEventCause[];
+  //causes?: CiEventCause[];
   parameters?: CiParam[];
-  multiBranchType?: string;
+  //multiBranchType?: string;
   parentCiId?: string;
   branch?: string;
   skipValidation?: boolean;

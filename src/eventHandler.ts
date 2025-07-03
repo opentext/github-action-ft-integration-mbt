@@ -249,12 +249,14 @@ const handleExecutorEvent = async (event: ActionsEvent, defaultParams: CiParam[]
   let exitCode = await MbtPreTestExecuter.preProcess(mbtTestInfos);
   if (exitCode === ExitCode.Passed) {
     exitCode = await FtTestExecuter.preProcess(mbtTestInfos);
-  }
+  } else {
+    _logger.error(`handleExecutorEvent: Failed to convert MBT tests.`);
+    return ExitCode.Aborted;
+  };
 
   // TODO check TestResultServiceImpl.publishResultsToOctane and updateExecutionFlowDetailParameter
   const res = (exitCode === ExitCode.Passed ? Result.SUCCESS : (exitCode === ExitCode.Unstable ? Result.UNSTABLE : Result.FAILURE));
   await sendExecutorFinishEvent(executorName, ciId, parentCiId, `${workflowRunId}`, `${workflowRunNum}`, branch, startTime, ciServer.url, execParams, ciServerInstanceId, res);
-  //TODO check publishExecutionStateEvent from OctaneEventServiceImpl.java CIEventType.CHANGE_EXEC_STATE("change_exec_state");
 
   return exitCode;
 }
