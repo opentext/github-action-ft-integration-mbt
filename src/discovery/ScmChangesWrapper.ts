@@ -6,7 +6,7 @@ import * as Diff from 'diff';
 import { Logger } from '../utils/logger';
 import ToolType from '../dto/ft/ToolType';
 
-const _logger: Logger = new Logger('ScmChangesWrapper');
+const logger: Logger = new Logger('ScmChangesWrapper');
 
 export interface ScmAffectedFileWrapper {
   newPath: string;
@@ -97,7 +97,7 @@ async function wrapScmChanges(toolType: ToolType, dir: string, oldCommit: string
 // Get diff entries between two commits
 async function getDiffEntries(toolType: ToolType, dir: string, oldCommit: string, newCommit: string): Promise<DiffEntry[]> {
   const gitdir = path.join(dir, '.git');
-  _logger.debug('Starting getDiffEntries with:', { dir, gitdir, oldCommit, newCommit });
+  logger.debug('Starting getDiffEntries with:', { dir, gitdir, oldCommit, newCommit });
 
   const allowedExtensions = toolType === ToolType.UFT ? /\.(xls|xlsx|tsp|st)$/i : /\.(tsp|st)$/i;
   const allowedFilenames = toolType === ToolType.UFT ? /^(ACTIONS\.XML)$/i : /^(ACTIONS\.XML|Resource\.MTR)$/i;
@@ -257,7 +257,7 @@ async function calculateSimilarity(dir: string, oldCommit: string, newCommit: st
     return totalLines > 0 ? unchangedLines / totalLines : 0;
   } catch (error) {
     const err = `Failed to compute similarity for ${oldPath} -> ${newPath}: ${error}`
-    _logger.error(err);
+    logger.error(err);
     core.error(err);
     return 0; // Default to no similarity if content can't be read
   }

@@ -37,12 +37,12 @@ import { OctaneStatus } from '../dto/ft/OctaneStatus';
 import DiscoveryResult from '../discovery/DiscoveryResult';
 import Unit from '../dto/octane/general/Unit';
 
-const _logger: Logger = new Logger('mbtDiscoveryResultPreparer');
+const logger: Logger = new Logger('mbtDiscoveryResultPreparer');
 const { ID, REPOSITORY_PATH, SCM_REPOSITORY } = EntityConstants.MbtUnit;
 
 const mbtPrepDiscoveryRes4Sync = async (executorId: number, scmRepositoryId: number, discoveryRes: DiscoveryResult) => {
   if (discoveryRes.isFullSync()) {
-    _logger.info(`Preparing full sync dispatch with MBT for executor ${executorId}`);
+    logger.info(`Preparing full sync dispatch with MBT for executor ${executorId}`);
     const units = await fetchUnitsByScmRepository(scmRepositoryId);
     const existingUnitsByRepo = units.reduce((acc, unit) => {
       const key = unit.repository_path;
@@ -51,7 +51,7 @@ const mbtPrepDiscoveryRes4Sync = async (executorId: number, scmRepositoryId: num
     }, new Map<string, Unit>());
     removeExistingUnits(discoveryRes, existingUnitsByRepo);
   } else {
-    _logger.info(`Preparing incremental sync dispatch with MBT for executor ${executorId}`);
+    logger.info(`Preparing incremental sync dispatch with MBT for executor ${executorId}`);
     await handleDeletedTests(discoveryRes.getDeletedTests());
     await handleAddedTests(discoveryRes);
     await handleUpdatedTests(discoveryRes.getUpdatedTests());
@@ -81,7 +81,7 @@ const handleAddedTests = async (discoveryRes: DiscoveryResult) => {
   if (!newTests?.length) {
     return;
   }
-  _logger.info(`Processing new tests. Count: ${newTests.length}.`);
+  logger.info(`Processing new tests. Count: ${newTests.length}.`);
 
   // Collect repository paths of actions for new tests that are not moved
   const newActionsRepositoryPaths = newTests
@@ -90,14 +90,14 @@ const handleAddedTests = async (discoveryRes: DiscoveryResult) => {
     .map(a => escapeQueryVal(a.repositoryPath!));
 
   if (!newActionsRepositoryPaths?.length) {
-    _logger.warn('No repository paths found for new tests.');
+    logger.warn('No repository paths found for new tests.');
     return;
   }
   const qry = Query.field(REPOSITORY_PATH).inComparison(newActionsRepositoryPaths);
   const unitsFromServer = await OctaneClient.fetchUnits(qry);
 
   if (!unitsFromServer?.length) {
-    _logger.warn('No units found in Octane for the given repository paths.');
+    logger.warn('No units found in Octane for the given repository paths.');
     return;
   }
 
@@ -118,7 +118,7 @@ const handleUpdatedTests = async (updatedTests: ReadonlyArray<AutomatedTest>) =>
   if (!updatedTests?.length) {
     return;
   }
-  _logger.info(`Processing updated tests. Count: ${updatedTests.length}.`);
+  logger.info(`Processing updated tests. Count: ${updatedTests.length}.`);
 
   // there are 4 cases:
   // 1. new action -> action will exist in the automated test but not in octane
@@ -153,7 +153,7 @@ const handleUpdatedTests = async (updatedTests: ReadonlyArray<AutomatedTest>) =>
 
   // just a validation
   if (scmPathToActionMap.size || scmPathToUnitMap.size) {
-    _logger.warn("Not all of the existing units or actions were processed");
+    logger.warn("Not all of the existing units or actions were processed");
   }
 
 }
@@ -213,7 +213,7 @@ const removeExistingUnits = (discoveryRes: DiscoveryResult, octaneUnitsMap: Map<
 const handleUpdatedTestAddedActionCase = (scmPathToActionMap: Map<string, UftoTestAction>, scmPathToUnitMap: Map<string, Unit>): void => {
   const addedActions = Array.from(scmPathToActionMap.keys()).filter(key => !scmPathToUnitMap.has(key));
   if (addedActions.length > 0) {
-    _logger.debug(`Found ${addedActions.length} updated tests for added action`);
+    logger.debug(`Found ${addedActions.length} updated tests for added action`);
 
     addedActions.forEach(p => {
       const action = scmPathToActionMap.get(p);
@@ -241,7 +241,7 @@ const handleUpdatedTestDeletedActionCase = (
       if (!scmTestPath) {
         const u = scmPathToUnitMap.get(s);
         if (u) {
-          _logger.warn(`Repository path ${s} of unit id: ${u.id}, name: "${u.name}" is not valid and will be discarded`);
+          logger.warn(`Repository path ${s} of unit id: ${u.id}, name: "${u.name}" is not valid and will be discarded`);
           scmPathToUnitMap.delete(s);
         }
       } else {
@@ -261,7 +261,7 @@ const handleUpdatedTestDeletedActionCase = (
           }
         });
         scmPathToUnitMap.delete(s);
-        _logger.info(`Found ${updatedTestsCounter} updated tests for deleted action`);
+        logger.info(`Found ${updatedTestsCounter} updated tests for deleted action`);
       }
     });
   }
@@ -341,14 +341,14 @@ const handleMovedTests = async (updatedTests: ReadonlyArray<AutomatedTest>) => {
     const addedActions = Array.from(actionNameToUftActionMap.keys()).filter(key => !actionNameToUnitMap.has(key));
 
     if (addedActions.length > 0) {
-      _logger.info(`Found ${addedActions.length} added actions for moved test ${aTest.name}`);
+      logger.info(`Found ${addedActions.length} added actions for moved test ${aTest.name}`);
     }
 
     // handle deleted actions
     const deletedActionNames = Array.from(actionNameToUnitMap.keys()).filter(key => !actionNameToUftActionMap.has(key));
 
     if (deletedActionNames.length > 0) {
-      _logger.info(`Found ${deletedActionNames.length} deleted actions for moved test ${aTest.name}`);
+      logger.info(`Found ${deletedActionNames.length} deleted actions for moved test ${aTest.name}`);
       // add the action as deleted to the automated test
       deletedActionNames.forEach(aName => {
         const entity = actionNameToUnitMap.get(aName);
@@ -380,7 +380,7 @@ const handleMovedTests = async (updatedTests: ReadonlyArray<AutomatedTest>) => {
 
   // when we reach here all the units from octane should have been removed
   if (unitsFromServer.length > 0) {
-    _logger.warn("Not all units from octane were mapped to moved tests");
+    logger.warn("Not all units from octane were mapped to moved tests");
   }
 }
 

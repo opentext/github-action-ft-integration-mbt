@@ -17,7 +17,7 @@ import { config } from '../config/config';
 import DiscoveryResult from './DiscoveryResult';
 import { TspParseError } from '../utils/TspParseError';
 
-const _logger: Logger = new Logger('Discovery');
+const logger: Logger = new Logger('Discovery');
 const _toolType = config.testingTool === "mbt" ? ToolType.MBT : ToolType.UFT;
 
 const UFT_COMPONENT_NODE_NAME = "Component";
@@ -50,7 +50,7 @@ export default class Discovery {
   private _tests: AutomatedTest[] = [];
   private _scmResxFiles: ScmResourceFile[] = [];
   constructor(workDir: string) {
-    _logger.debug('Discovery constructor ...');
+    logger.debug('Discovery constructor ...');
     this._workDir = workDir;
   }
 
@@ -138,7 +138,7 @@ export default class Discovery {
   }  
 
   public async startScanning(oldCommit: string): Promise<DiscoveryResult> {
-    _logger.info('BEGIN Scanning ...');
+    logger.info('BEGIN Scanning ...');
     const didFullCheckout = await this.checkoutRepo();
     const newCommit = await getHeadCommitSha(this._workDir);
     let isFullSync = true;
@@ -153,8 +153,8 @@ export default class Discovery {
         await this.doFullDiscovery();
       }
     }
-    _logger.info(`isFullSync = ${isFullSync}`);
-    _logger.info('END Scanning ...');
+    logger.info(`isFullSync = ${isFullSync}`);
+    logger.info('END Scanning ...');
     return new DiscoveryResult(newCommit, this._tests, this._scmResxFiles, isFullSync);
   }
 
@@ -328,7 +328,7 @@ export default class Discovery {
     const actions: UftoTestAction[] = [];
 
     if (!doc) {
-        _logger.warn("received null gui test document, actions will not be parsed");
+        logger.warn("received null gui test document, actions will not be parsed");
     } else {
         const actionMap = this.parseActionComponents(doc, testName);
         this.fillActionsLogicalName(doc, actionMap, actionPathPrefix);
@@ -336,7 +336,7 @@ export default class Discovery {
         try {
             await this.readParameters(dirPath, actionMap);
         } catch (error: any) {
-            _logger.error(`Failed to parse action's parameters: ${error?.message}`);
+            logger.error(`Failed to parse action's parameters: ${error?.message}`);
         }
     }
 
@@ -382,11 +382,11 @@ export default class Discovery {
         if (resourceMtrFile) {
           await this.parseActionMtrFile(resourceMtrFile, action);
         } else {
-          _logger.warn(`resource.mtr file for action ${actionName} does not exist`);
+          logger.warn(`resource.mtr file for action ${actionName} does not exist`);
         }
       } catch (error) {
         action.parameters = [];
-        _logger.warn(`folder for action ${actionName} does not exist: ${(error as Error).message}`);
+        logger.warn(`folder for action ${actionName} does not exist: ${(error as Error).message}`);
       }
     }
   }
@@ -560,13 +560,13 @@ export default class Discovery {
   }
 
   private async checkoutRepo(): Promise<boolean> {
-    _logger.info('BEGIN checkoutRepo ...');
+    logger.info('BEGIN checkoutRepo ...');
     try {
       const token = core.getInput('githubToken', { required: true });
       let didFullCheckout = false;
 
       const authRepoUrl = config.repoUrl.replace('https://', `https://x-access-token:${token}@`);
-      _logger.debug(`Expected authRepoUrl: ${authRepoUrl}`);
+      logger.debug(`Expected authRepoUrl: ${authRepoUrl}`);
 
       // Filter process.env to exclude undefined values
       const filteredEnv: { [key: string]: string } = {};
@@ -590,14 +590,14 @@ export default class Discovery {
       function printWarn (data: Buffer) {
         if (data) {
           const msg = data.toString().trim();
-          _logger.warn(msg);
+          logger.warn(msg);
         }
       };
 
       // Check if _work\ufto-tests is a Git repository
       const gitDir = path.join(this._workDir, '.git');
       if (fs.existsSync(gitDir)) {
-        _logger.info('Working directory is a Git repo, checking remote URL...');
+        logger.info('Working directory is a Git repo, checking remote URL...');
 
         // Get the current remote URL with specific stdout capture
         let currentRemoteUrl = '';
@@ -611,16 +611,16 @@ export default class Discovery {
         });
         if (getUrlExitCode === 0) {
           currentRemoteUrl = getUrlOutput.join('').trim();
-          _logger.debug(`Current remote URL: ${currentRemoteUrl}`);
+          logger.debug(`Current remote URL: ${currentRemoteUrl}`);
         } else {
-          _logger.warn('Failed to get current remote URL, proceeding with set-url');
+          logger.warn('Failed to get current remote URL, proceeding with set-url');
         }
 
         // Compare current URL with base repoUrl (ignoring token)
         if (currentRemoteUrl == authRepoUrl) {
-          _logger.info('Remote URL base matches.');
+          logger.info('Remote URL base matches.');
         } else {
-          _logger.info('Remote URL does not match, setting to authenticated URL...');
+          logger.info('Remote URL does not match, setting to authenticated URL...');
           const setUrlExitCode = await exec('git', ['remote', 'set-url', 'origin', authRepoUrl], gitOptions);
           if (setUrlExitCode !== 0) {
             throw new Error(`git remote set-url failed with exit code ${setUrlExitCode}`);
@@ -628,23 +628,23 @@ export default class Discovery {
         }
 
         // Perform the pull
-        _logger.info('Pulling updates...');
+        logger.info('Pulling updates...');
         const pullExitCode = await exec('git', ['pull'], gitOptions);
         if (pullExitCode !== 0) {
           throw new Error(`git pull failed with exit code ${pullExitCode}`);
         }
       } else {
-        _logger.info(`Cloning repository into ${this._workDir}`);
+        logger.info(`Cloning repository into ${this._workDir}`);
         const cloneExitCode = await exec('git', ['clone', authRepoUrl, '.'], gitOptions);
         if (cloneExitCode !== 0) {
           throw new Error(`git clone failed with exit code ${cloneExitCode}`);
         }
         didFullCheckout = true;
       }
-      _logger.info('END checkoutRepo ...');
+      logger.info('END checkoutRepo ...');
       return didFullCheckout;
     } catch (error: any) {
-      _logger.error('Error in checkoutRepo: ' + error?.message);
+      logger.error('Error in checkoutRepo: ' + error?.message);
       throw error;
     }
   }

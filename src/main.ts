@@ -30,12 +30,12 @@
 import { setFailed } from '@actions/core';
 import { handleCurrentEvent } from './eventHandler';
 import { Logger } from './utils/logger';
-const _logger: Logger = new Logger('Main');
+const logger: Logger = new Logger('Main');
 
 async function run () {
   try {
-    _logger.info('BEGIN run ...');
-    _logger.info('Current dir = ' + process.cwd());
+    logger.info('BEGIN run ...');
+    logger.info('Current dir = ' + process.cwd());
 
     await handleCurrentEvent();
   } catch (error: any) {
@@ -49,10 +49,10 @@ async function run () {
     } else {
       msg = error.message;
     }
-    _logger.error(msg);
+    logger.error(msg);
     setFailed(msg);
   } finally {
-    _logger.info('END run ...');
+    logger.info('END run ...');
   }
 }
 

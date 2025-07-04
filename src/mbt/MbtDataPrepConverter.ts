@@ -3,11 +3,11 @@ import MbtTestData, { UnitDetails, MbtScriptData, TestParam, MbtDataSet, MbtTest
 import { Buffer } from 'buffer';
 import { Logger } from '../utils/logger';
 import TestData from "./TestData";
-const _logger = new Logger('MbtDataPrepConverter');
+const logger = new Logger('MbtDataPrepConverter');
 
 export default class MbtDataPrepConverter {
   private static generateScriptData(units: UnitDetails[], repoFolderPath: string): MbtScriptData[] {
-    _logger.debug(`generateScriptData: units.length=${units.length}, repoFolderPath=[${repoFolderPath}] ...`);
+    logger.debug(`generateScriptData: units.length=${units.length}, repoFolderPath=[${repoFolderPath}] ...`);
     return units
       .filter(unit => unit.pathInScm.includes(':'))
       .map(unit => {
@@ -26,7 +26,7 @@ export default class MbtDataPrepConverter {
   }
 
   private static extractDataTableIterations(data: MbtDataSet, testName: string): string {
-    _logger.debug(`extractDataTableIterations: testName=${testName} ...`);
+    logger.debug(`extractDataTableIterations: testName=${testName} ...`);
     if (data?.parameters?.length) {
       const csvRows: string[] = [];
       csvRows.push(data.parameters.map(this.escapeCsvVal).join(",")); // add header row
@@ -35,7 +35,7 @@ export default class MbtDataPrepConverter {
         csvRows.push(row);
       });
       const csvStr = csvRows.join("\n");
-      _logger.debug(`csvStr=${csvStr}`);
+      logger.debug(`csvStr=${csvStr}`);
       return Buffer.from(csvStr, 'utf-8').toString('base64');
     }
     return "";
@@ -43,7 +43,7 @@ export default class MbtDataPrepConverter {
 
   public static buildMbtTestInfo(repoFolderPath: string, runId: number, mbtTestData: MbtTestData, testDataMap: Map<number, TestData>): MbtTestInfo {
     const testName = testDataMap.get(runId)?.testName!;
-    _logger.debug(`buildMbtTestInfo: testName=${testName}, runId=${runId} ...`);
+    logger.debug(`buildMbtTestInfo: testName=${testName}, runId=${runId} ...`);
     return {
       runId: runId,
       testName: testName,

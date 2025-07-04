@@ -49,7 +49,7 @@ const TEXT_XML = "text/xml";
 const _TSP = '.tsp';
 const _ST = '.st';
 const UTF8 = 'utf8';
-const _logger: Logger = new Logger('utils');
+const logger: Logger = new Logger('utils');
 
 async function getHeadCommitSha(dir: string): Promise<string> {
   return context.sha ?? git.resolveRef({ fs, dir, ref: 'HEAD' });
@@ -64,7 +64,7 @@ async function saveSyncedCommit(newCommit: string): Promise<void> {
     return;
   try {
     await fs.writeFile(SYNCED_COMMIT_SHA, newCommit.trim(), UTF8);
-    _logger.debug(`Newly synced commit ${newCommit} saved to [${SYNCED_COMMIT_SHA}]`);
+    logger.debug(`Newly synced commit ${newCommit} saved to [${SYNCED_COMMIT_SHA}]`);
     await saveSyncedTimestamp();
   } catch (error) {
     throw new Error(`Failed to save string: ${(error as Error).message}`);
@@ -78,11 +78,11 @@ async function saveSyncedCommit(newCommit: string): Promise<void> {
 async function getSyncedCommit(): Promise<string> {
   try {
     const data = await fs.readFile(SYNCED_COMMIT_SHA, UTF8);
-    _logger.debug(`Last synced commit: ${data} loaded from [${SYNCED_COMMIT_SHA}]`);
+    logger.debug(`Last synced commit: ${data} loaded from [${SYNCED_COMMIT_SHA}]`);
     return data.trim();
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      _logger.debug(`File doesn't exist yet [${SYNCED_COMMIT_SHA}]`);
+      logger.debug(`File doesn't exist yet [${SYNCED_COMMIT_SHA}]`);
       return "";
     }
     throw new Error(`Failed to load string: ${(error as Error).message}`);
@@ -93,7 +93,7 @@ async function saveSyncedTimestamp(): Promise<void> {
   try {
     const currentTime = new Date().toISOString();
     await fs.writeFile(SYNCED_TIMESTAMP, currentTime, UTF8);
-    _logger.debug(`Newly run timestamp ${currentTime} saved to [${SYNCED_TIMESTAMP}]`);
+    logger.debug(`Newly run timestamp ${currentTime} saved to [${SYNCED_TIMESTAMP}]`);
   } catch (error) {
     throw new Error(`Failed to save string: ${(error as Error).message}`);
   }
@@ -102,7 +102,7 @@ async function saveSyncedTimestamp(): Promise<void> {
 async function getSyncedTimestamp(): Promise<number> {
   try {
     const str = await fs.readFile(SYNCED_TIMESTAMP, UTF8);
-    _logger.debug(`Last synced timestamp: ${str} loaded from [${SYNCED_TIMESTAMP}]`);
+    logger.debug(`Last synced timestamp: ${str} loaded from [${SYNCED_TIMESTAMP}]`);
     return new Date(str).getTime();
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -233,7 +233,7 @@ const extractActionNameFromActionPath = (repositoryPath: string): string => {
 }
 
 const calcByExpr = (param: string, regex: RegExp, groupNum: number): string => {
-  _logger.debug(`calcByExpr: param=${param}, regex=${regex}, groupNum=${groupNum} ...`);
+  logger.debug(`calcByExpr: param=${param}, regex=${regex}, groupNum=${groupNum} ...`);
   const match = param.match(regex);
 
   if (match) {
@@ -246,7 +246,7 @@ const getSafeDomParser = (): DOMParser => {
   const parser = new DOMParser({
     errorHandler: (level: string, msg: string) => {
       if (level === 'error') {
-        _logger.error(`XML Parse Error: ${msg}`);
+        logger.error(`XML Parse Error: ${msg}`);
       } else if (level === 'fatalError') {
         throw new TspParseError(`Fatal XML Parse Error: ${msg}`);
       }
@@ -285,7 +285,7 @@ const extractXmlFromTspOrMtrFile = async (filePath: string): Promise<string> => 
     }
   } catch (error) {
     const err = `${(error as Error).message}`;
-    _logger.error(`Failed to extract xml from Test.tsp file: ${err}`);
+    logger.error(`Failed to extract xml from Test.tsp file: ${err}`);
     throw new Error(err);
   }
 }
@@ -309,7 +309,7 @@ const getGuiTestDocument = async (dirPath: string): Promise<Document | null> => 
 
     const xmlContent = await extractXmlFromTspOrMtrFile(tspTestFile);
     if (!xmlContent) {
-      _logger.warn("No valid XML content extracted from TSP file");
+      logger.warn("No valid XML content extracted from TSP file");
       return null;
     }
 
@@ -322,7 +322,7 @@ const getGuiTestDocument = async (dirPath: string): Promise<Document | null> => 
 
     return doc;
   } catch (error: any) {
-    _logger.error("Error parsing document:" + error?.message);
+    logger.error("Error parsing document:" + error?.message);
     throw error instanceof TspParseError ? error : new TspParseError(`Failed to parse document: ${error}`);
   }
 }
@@ -343,7 +343,7 @@ const getApiTestDocument = async (dirPath: string): Promise<Document | null> => 
     }
     return doc;
   } catch (error: any) {
-    _logger.error("Error parsing document: " + error?.message);
+    logger.error("Error parsing document: " + error?.message);
     throw error;
   }
 }
@@ -354,7 +354,7 @@ const getFileIfExist = async (dirPath: string, fileName: string): Promise<string
     await fs.access(filePath);
     return filePath;
   } catch {
-    _logger.warn(`File ${filePath} does not exist`);
+    logger.warn(`File ${filePath} does not exist`);
     return null;
   }
 }
@@ -383,27 +383,27 @@ const escapePropVal = (val: string): string => {
 const checkReadWriteAccess = async (dirPath: string): Promise<void> => {
   if (!dirPath) {
     const err = `Missing environment variable RUNNER_WORKSPACE`;
-    _logger.error(`checkReadWriteAccess: ${err}`);
+    logger.error(`checkReadWriteAccess: ${err}`);
     throw new Error(err);
   }
   // Check read/write access to RUNNER_WORKSPACE
-  _logger.debug(`checkReadWriteAccess: [${dirPath}]`);
+  logger.debug(`checkReadWriteAccess: [${dirPath}]`);
   try {
     await fs.access(dirPath, fs.constants.R_OK | fs.constants.W_OK);
   } catch (error: any) {
     const err = `checkReadWriteAccess: [${dirPath}] => ${error.message}`;
-    _logger.error(err);
+    logger.error(err);
     throw new Error(err);
   }
 }
 const checkFileExists = async (fullPath: string): Promise <void> => {
   try {
-    _logger.debug(`ensureFileExists: [${fullPath}] ...`);
+    logger.debug(`ensureFileExists: [${fullPath}] ...`);
     await fs.access(fullPath, fs.constants.F_OK | fs.constants.R_OK);
-    _logger.debug(`Located [${fullPath}]`);
+    logger.debug(`Located [${fullPath}]`);
   } catch(error: any) {
     const err = `checkFileExists: Failed to locate [${fullPath}]: ${error.message}`;
-    _logger.error(err);
+    logger.error(err);
     throw new Error(err);
   }
 }

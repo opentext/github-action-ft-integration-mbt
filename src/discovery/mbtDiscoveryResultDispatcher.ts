@@ -43,7 +43,7 @@ import Reference from '../dto/octane/general/Reference';
 const LIST_NODE = "list_node";
 const INPUT = "input";
 const OUTPUT = "output";
-const _logger: Logger = new Logger('mbtDiscoveryResultDispatcher');
+const logger: Logger = new Logger('mbtDiscoveryResultDispatcher');
 
 const getAutoDiscoveredFolder = async (executorId: number): Promise<BaseFolder> => {
   let autoDiscoveredFolder: BaseFolder | null = await OctaneClient.getRunnerDedicatedFolder(executorId);
@@ -57,7 +57,7 @@ const getAutoDiscoveredFolder = async (executorId: number): Promise<BaseFolder> 
 }
 
 const createParentFolders = async (newActions: UftoTestAction[], autoDiscoveredFolder: BaseFolder): Promise<Map<string, Folder>> => {
-  _logger.debug(`createParentFolders: length=${newActions.length}, folder=${autoDiscoveredFolder.name} ...`);
+  logger.debug(`createParentFolders: length=${newActions.length}, folder=${autoDiscoveredFolder.name} ...`);
   // find existing sub folders. each folder's name is the test name that contains the actions
   const existingSubFolders = await OctaneClient.fetchChildFolders(autoDiscoveredFolder);
   const existingSubFoldersMap: Map<string, Folder> = new Map<string, Folder>(
@@ -90,7 +90,7 @@ const countDistinctTests = (units: Unit[]): number => {
 
 const updateFolders = async (folders: Folder[], oldName2newNameMap: Map<string, string>): Promise<void> => {
   if (folders?.length) {
-    _logger.debug(`updateFolders: folders.length=${folders.length} ...`);
+    logger.debug(`updateFolders: folders.length=${folders.length} ...`);
     const foldersToUpdate: FolderBody[] = folders.map((f: Folder) => {
       return { id: `${f.id}`, name: oldName2newNameMap.get(f.name) } as FolderBody;
     });
@@ -99,7 +99,7 @@ const updateFolders = async (folders: Folder[], oldName2newNameMap: Map<string, 
 }
 
 const updateParentFolders = async (scmRepositoryId: number, updatedActions: UftoTestAction[], autoDiscoveredFolder: Folder): Promise<Map<string, Folder>> => {
-  _logger.debug(`updateParentFolders: scmRepositoryId=${scmRepositoryId}, updatedActions.length=${updatedActions.length}, autoDiscoveredFolder=${autoDiscoveredFolder.name} ...`);
+  logger.debug(`updateParentFolders: scmRepositoryId=${scmRepositoryId}, updatedActions.length=${updatedActions.length}, autoDiscoveredFolder=${autoDiscoveredFolder.name} ...`);
   const oldNameToNewNameMap = updatedActions.reduce((acc, action) => {
     if (action.moved && action.testName && action.oldTestName && action.testName !== action.oldTestName) {
       acc.set(action.oldTestName!, action.testName!);
@@ -128,7 +128,7 @@ const updateParentFolders = async (scmRepositoryId: number, updatedActions: Ufto
       units.reduce((acc, unit) => {
         const parentName = unit.parent?.name;
         if (!parentName) {
-          _logger.warn(`Unit ${unit.name} has no parent folder, skipping...`);
+          logger.warn(`Unit ${unit.name} has no parent folder, skipping...`);
           return acc; // Skip if no parent name
         }
 
@@ -222,7 +222,7 @@ const buildUnit = (executorId: number, scmRepositoryId: number, action: UftoTest
 }
 
 const dispatchNewActions = async (executorId: number, scmRepositoryId: number, newActions: UftoTestAction[], autoDiscoveredFolder: BaseFolder): Promise<boolean> => {
-  _logger.debug(`dispatchNewActions: executorId=${executorId}, scmRepositoryId=${scmRepositoryId}, length=${newActions.length}, folder=${autoDiscoveredFolder.name} ...`);
+  logger.debug(`dispatchNewActions: executorId=${executorId}, scmRepositoryId=${scmRepositoryId}, length=${newActions.length}, folder=${autoDiscoveredFolder.name} ...`);
   if (newActions?.length) {
     const foldersMap = await createParentFolders(newActions, autoDiscoveredFolder);
     const paramsToAdd: UnitParamBody[] = []; // add external parameter entities list to be filled by each action creation
@@ -230,12 +230,12 @@ const dispatchNewActions = async (executorId: number, scmRepositoryId: number, n
     const unitsToAdd: UnitBody[] = [];
     for (const action of newActions) {
       if (!action.testName) {
-        _logger.error(`Test name is undefined for action ${action.name}`);
+        logger.error(`Test name is undefined for action ${action.name}`);
         continue;
       }
       const parentFolder = foldersMap.get(action.testName);
       if (!parentFolder) {
-        _logger.error(`Parent folder for test ${action.testName} not found`);
+        logger.error(`Parent folder for test ${action.testName} not found`);
         continue;
       }
       unitsToAdd.push(buildUnit(executorId, scmRepositoryId, action, parentFolder.id, paramsToAdd));
@@ -247,12 +247,12 @@ const dispatchNewActions = async (executorId: number, scmRepositoryId: number, n
 
 // we do not delete units. instead, we reset some of their attributes
 const dispatchDeletedActions = async (deletedActions: UftoTestAction[]): Promise<boolean> => {
-  _logger.debug(`dispatchDeletedActions: length=${deletedActions.length} ...`);
+  logger.debug(`dispatchDeletedActions: length=${deletedActions.length} ...`);
   if (deletedActions?.length) {
     const unitsToDelete: UnitBody[] = [];
     for (const action of deletedActions) {
       if (!action.id) {
-        _logger.error(`ID is undefined for action ${action.name}`);
+        logger.error(`ID is undefined for action ${action.name}`);
         continue;
       }
       const unit: UnitBody = {
@@ -271,7 +271,7 @@ const dispatchDeletedActions = async (deletedActions: UftoTestAction[]): Promise
 
 const dispatchUpdatedActions = async (executorId: number, scmRepositoryId: number, updatedActions: UftoTestAction[], parentFolder: Folder): Promise<boolean> => {
   if (updatedActions?.length) {
-    _logger.info(`Updating ${updatedActions.length} actions ...`);
+    logger.info(`Updating ${updatedActions.length} actions ...`);
     const existingFoldersMap = await updateParentFolders(scmRepositoryId, updatedActions, parentFolder);
     // convert actions to unit entities
     const unitsToUpdate: UnitBody[] = updatedActions.map(action => {
@@ -287,7 +287,7 @@ const dispatchUpdatedActions = async (executorId: number, scmRepositoryId: numbe
 }
 
 const dispatchDiscoveryResults = async (executorId: number, scmRepositoryId: number, result: DiscoveryResult) => {
-  _logger.info('Dispatching discovery results ...');
+  logger.info('Dispatching discovery results ...');
   const allActions = result.getAllTests().flatMap(aTest => aTest.actions);
   const actionsByStatusMap: Map<OctaneStatus, UftoTestAction[]> = allActions.reduce((acc, action) => {
     const status = action.octaneStatus;

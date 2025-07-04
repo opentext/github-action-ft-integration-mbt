@@ -3,7 +3,7 @@ import AutomatedTest from '../dto/ft/AutomatedTest';
 import ScmResourceFile from '../dto/ft/ScmResourceFile';
 import { OctaneStatus } from '../dto/ft/OctaneStatus';
 
-const _logger: Logger = new Logger('Discovery');
+const logger: Logger = new Logger('Discovery');
 
 export default class DiscoveryResult {
   private readonly _tests: ReadonlyArray<AutomatedTest>;
@@ -12,7 +12,7 @@ export default class DiscoveryResult {
   private readonly _newCommit: string;
   private readonly _isFullSync: boolean;
   constructor(newCommit: string, tests: AutomatedTest[], scmResxFiles: ScmResourceFile[], isFullSync: boolean) {
-    _logger.debug('DiscoveryResult constructor ...');
+    logger.debug('DiscoveryResult constructor ...');
     this._newCommit = newCommit;
     this._isFullSync = isFullSync;
     this._tests = Object.freeze(tests);

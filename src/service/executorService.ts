@@ -43,6 +43,7 @@ import { Logger } from '../utils/logger';
 const logger: Logger = new Logger('executorService');
 
 const getOrCreateTestRunner = async (name: string, ciServerId: number, ciJob: CiJob): Promise<CiExecutor> => {
+  logger.debug(`getOrCreateTestRunner: name=${name}, ciServerId=${ciServerId}, ciJob=${JSON.stringify(ciJob)} ...`);
   const subType = "uft_test_runner";
   const entry = await OctaneClient.getExecutor(ciServerId, name, subType);
 
@@ -80,7 +81,7 @@ const sendExecutorStartEvent = async (
     skipValidation: true
   };
 
-  await OctaneClient.sendEvents([evt], ciServerInstanceId, baseUrl);
+  await OctaneClient.sendEvent(evt, ciServerInstanceId, baseUrl);
 };
 
 const sendExecutorFinishEvent = async (
@@ -115,8 +116,7 @@ const sendExecutorFinishEvent = async (
     testResultExpected,
     result
   };
-  logger.debug(`sendExecutorFinishEvent: `, evt);
-  await OctaneClient.sendEvents([evt], ciServerInstanceId, baseUrl);
+  await OctaneClient.sendEvent(evt, ciServerInstanceId, baseUrl);
 };
 
 const buildExecutorName = (

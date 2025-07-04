@@ -8,35 +8,35 @@ import { MbtScriptData, MbtTestInfo } from './MbtTestData';
 import { ExitCode } from '../ft/ExitCode';
 import FTL from '../ft/FTL';
 
-const _logger = new Logger('MbtPreTestExecuter');
+const logger = new Logger('MbtPreTestExecuter');
 
 export default class MbtPreTestExecuter {
   public static async preProcess(mbtTestInfos: MbtTestInfo[]): Promise<ExitCode> {
-    _logger.debug(`preProcess: mbtTestInfos.length=${mbtTestInfos.length} ...`);
+    logger.debug(`preProcess: mbtTestInfos.length=${mbtTestInfos.length} ...`);
     const mbtPropsFullPath = await this.createMbtPropsFile(mbtTestInfos);
     await checkFileExists(mbtPropsFullPath);
     const actionBinPath = await FTL.ensureToolExists();
     const exitCode = await FTL.runTool(actionBinPath, mbtPropsFullPath);
-    _logger.debug(`preProcess: exitCode=${exitCode}`);
+    logger.debug(`preProcess: exitCode=${exitCode}`);
     return exitCode;
   }
 
   private static async createMbtPropsFile(testInfos: MbtTestInfo[]): Promise<string> {
     if (!testInfos.length) return '';
-    _logger.debug(`createMbtPropsFile: testInfos.length=${testInfos.length} ...`);
+    logger.debug(`createMbtPropsFile: testInfos.length=${testInfos.length} ...`);
     const wsDir = process.env.RUNNER_WORKSPACE; // e.g., C:\GitHub_runner\_work\ufto-tests\
     if (!wsDir) {
       const err = `Missing environment variable: RUNNER_WORKSPACE`;
-      _logger.error(err);
+      logger.error(err);
       throw new Error(err);
     }
     // Check read/write access to RUNNER_WORKSPACE
     try {
       await fs.access(wsDir, fs.constants.R_OK | fs.constants.W_OK);
-      _logger.debug(`Read/write access confirmed for [${wsDir}]`);
+      logger.debug(`Read/write access confirmed for [${wsDir}]`);
     } catch (error: any) {
       const err = `No read/write access to [${wsDir}]: ${error.message}`;
-      _logger.error(err);
+      logger.error(err);
       throw new Error(err);
     }
 
@@ -61,7 +61,7 @@ export default class MbtPreTestExecuter {
     try {
       await fs.writeFile(mbtPropsFullPath, Object.entries(props).map(([k, v]) => `${k}=${v}`).join('\n'));
     } catch (error: any) {
-      _logger.error(`createMbtPropsFile: ${error.message}`);
+      logger.error(`createMbtPropsFile: ${error.message}`);
       throw new Error('Failed when creating MBT properties file');
     }
 
@@ -69,7 +69,7 @@ export default class MbtPreTestExecuter {
   }
 
   private static extractTestResources = async (testPath: string): Promise<TestResources> => {
-    _logger.debug(`extractTestResources: testPath=${testPath}`);
+    logger.debug(`extractTestResources: testPath=${testPath}`);
     const content: TestResources = {
       functionLibraries: [],
       recoveryScenarios: []
@@ -100,7 +100,7 @@ export default class MbtPreTestExecuter {
         });
       }
     } catch (error: any) {
-      _logger.error(`extractTestResources: ${error.message}; Continuing with empty resources`);
+      logger.error(`extractTestResources: ${error.message}; Continuing with empty resources`);
     }
 
     return content;
@@ -109,7 +109,7 @@ export default class MbtPreTestExecuter {
   private static updateTestScriptResources = async (scriptData: MbtScriptData[]): Promise<string> => {
     let index = 0;
     const scriptLines: string[] = [];
-    _logger.debug(`updateTestScriptResources: scriptData.length=${scriptData.length}`);
+    logger.debug(`updateTestScriptResources: scriptData.length=${scriptData.length}`);
 
     for (const unit of scriptData) {
       let script = '';

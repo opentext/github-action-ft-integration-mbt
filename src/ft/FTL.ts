@@ -5,14 +5,14 @@ import path from "path";
 import { Logger } from "../utils/logger";
 
 const HP_TL_EXE = 'HpToolsLauncher.exe';
-const _logger = new Logger("FTL");
+const logger = new Logger("FTL");
 
 export default class FTL {
   public static readonly FileSystem = "FileSystem";
   public static readonly MBT = "MBT";
   public static readonly _MBT = "___mbt";
   public static async ensureToolExists(): Promise<string> {
-    _logger.debug(`ensureToolExists: Checking for ${HP_TL_EXE} ...`);
+    logger.debug(`ensureToolExists: Checking for ${HP_TL_EXE} ...`);
     const runnerWorkspace = process.env.RUNNER_WORKSPACE;
     const actionRepo = process.env.GITHUB_ACTION_REPOSITORY;
     const actionRef = process.env.GITHUB_ACTION_REF;
@@ -27,7 +27,7 @@ export default class FTL {
     }
     if (missing) {
       const err = `Missing required environment variable: ${missing}`;
-      _logger.error(`ensureToolExists: ${err}`);
+      logger.error(`ensureToolExists: ${err}`);
       throw new Error(err);
     }
 
@@ -38,20 +38,20 @@ export default class FTL {
     const exeFullPath = path.join(actionBinPath, HP_TL_EXE);
     try {
       await fsp.access(exeFullPath, fsp.constants.F_OK);
-      _logger.debug(`Located [${exeFullPath}]`);
+      logger.debug(`Located [${exeFullPath}]`);
       return actionBinPath; // Return the bin path where HpToolsLauncher.exe is located
     } catch (error: any) {
       const err = `Failed to locate [${exeFullPath}]: ${error.message}`;
-      _logger.error(err);
+      logger.error(err);
       throw new Error(err);
     }
   }
   public static async runTool(binPath: string, propsFullPath: string): Promise<ExitCode> {
-    _logger.debug(`runTool: binPath=[${binPath}], propsFullPath=[${propsFullPath}] ...`);
+    logger.debug(`runTool: binPath=[${binPath}], propsFullPath=[${propsFullPath}] ...`);
     const args = ['-paramfile', propsFullPath];
     try {
       await fsp.access(path.join(binPath, HP_TL_EXE), fsp.constants.F_OK | fsp.constants.X_OK);
-      _logger.info(`${HP_TL_EXE} ${args.join(' ')}`);
+      logger.info(`${HP_TL_EXE} ${args.join(' ')}`);
 
       return await new Promise<ExitCode>((resolve, reject) => {
         const launcher = spawn(HP_TL_EXE, args, {
@@ -60,12 +60,12 @@ export default class FTL {
         });
         launcher.stdout.on('data', (data) => {
           const msg = data?.toString().trim();
-          msg && _logger.info(msg);
+          msg && logger.info(msg);
         });
 
         launcher.stderr.on('data', (data) => {
           const err = data?.toString().trim();
-          err && _logger.error(err);
+          err && logger.error(err);
         });
 
         launcher.on('error', (error) => {
@@ -79,12 +79,12 @@ export default class FTL {
           if (typeof code === 'number') {
             normalizedCode = code > 0x7FFFFFFF ? code - 0x100000000 : code;
           } else {
-            _logger.error('runTool: Process exited with null code (possibly killed by signal)');
+            logger.error('runTool: Process exited with null code (possibly killed by signal)');
             resolve(ExitCode.Aborted); // or another appropriate value
             return;
           }
 
-          _logger.debug(`runTool: ExitCode=${normalizedCode}`);
+          logger.debug(`runTool: ExitCode=${normalizedCode}`);
           const exitCode = Object.values(ExitCode).includes(normalizedCode)
             ? (normalizedCode as ExitCode)
             : ExitCode.Unkonwn;
@@ -92,7 +92,7 @@ export default class FTL {
         });
       });
     } catch (error: any) {
-      _logger.error(`runTool: ${error.message}`);
+      logger.error(`runTool: ${error.message}`);
       throw new Error(`Failed to run HpToolsLauncher: ${error.message}`);
     }
   }

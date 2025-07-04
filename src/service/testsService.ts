@@ -31,13 +31,13 @@ import { Logger } from '../utils/logger';
 import AutomatedTest from '../dto/ft/AutomatedTest';
 import Test from '../dto/octane/general/Test';
 
-const _logger: Logger = new Logger('testsService');
+const logger: Logger = new Logger('testsService');
 
 const fetchTestsFromOctane = async (tests: ReadonlyArray<AutomatedTest>): Promise<Map<string, Test> | null> => {
   const testNames = tests.map(test => test.name);
   const entries = await OctaneClient.fetchAutomatedTestsAgainstScmRepository(testNames);
   if (!entries || entries.size === 0) {
-    _logger.warn('No tests found in Octane');
+    logger.warn('No tests found in Octane');
     return null;
   }
   return entries;
