@@ -255,7 +255,8 @@ const handleExecutorEvent = async (event: ActionsEvent, defaultParams: CiParam[]
 
   // TODO check TestResultServiceImpl.publishResultsToOctane and updateExecutionFlowDetailParameter
   const res = (exitCode === ExitCode.Passed ? Result.SUCCESS : (exitCode === ExitCode.Unstable ? Result.UNSTABLE : Result.FAILURE));
-  await sendExecutorFinishEvent(executorName, ciId, parentCiId, `${workflowRunId}`, `${workflowRunNum}`, branch, startTime, ciServer.url, execParams, ciServerInstanceId, res);
+  //TODO
+  //await sendExecutorFinishEvent(executorName, ciId, parentCiId, `${workflowRunId}`, `${workflowRunNum}`, branch, startTime, ciServer.url, execParams, ciServerInstanceId, res);
 
   return exitCode;
 }
