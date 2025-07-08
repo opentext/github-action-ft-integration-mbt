@@ -78525,7 +78525,7 @@ function generateExecParams(defaultParams, wfi) {
     return defaultParams.map(param => {
         if (param.name in requiredKeys) {
             return {
-                ...param,
+                name: param.name,
                 value: wfi[param.name]
             };
         }

@@ -303,7 +303,7 @@ function generateExecParams(defaultParams: CiParam[], wfi: WorkflowInputs): CiPa
   return defaultParams.map(param => {
     if (param.name in requiredKeys) {
       return {
-        ...param,
+        name: param.name,
         value: wfi[param.name as keyof WorkflowInputs]
       };
     }
