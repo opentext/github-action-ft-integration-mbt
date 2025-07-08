@@ -78522,15 +78522,12 @@ function hasNoEmptyOrDefaultValue(wfis, defaults) {
 }
 // Function to generate execParams based on defaultParams and wfi
 function generateExecParams(defaultParams, wfi) {
-    return defaultParams.map(param => {
-        if (param.name in requiredKeys) {
-            return {
-                name: param.name,
-                value: wfi[param.name]
-            };
-        }
-        return param;
-    });
+    return defaultParams
+        .filter(param => requiredKeys.includes(param.name))
+        .map(param => ({
+        name: param.name,
+        value: wfi[param.name]
+    }));
 }
 
 

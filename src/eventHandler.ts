@@ -300,13 +300,10 @@ function hasNoEmptyOrDefaultValue(wfis: WorkflowInputs, defaults: Record<string,
 
 // Function to generate execParams based on defaultParams and wfi
 function generateExecParams(defaultParams: CiParam[], wfi: WorkflowInputs): CiParam[] {
-  return defaultParams.map(param => {
-    if (param.name in requiredKeys) {
-      return {
-        name: param.name,
-        value: wfi[param.name as keyof WorkflowInputs]
-      };
-    }
-    return param;
-  });
+  return defaultParams
+    .filter(param => requiredKeys.includes(param.name as keyof WorkflowInputs))
+    .map(param => ({
+      name: param.name,
+      value: wfi[param.name as keyof WorkflowInputs]
+    }));
 }
