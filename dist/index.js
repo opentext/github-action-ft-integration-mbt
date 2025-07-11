@@ -27276,1626 +27276,6 @@ module.exports = function(dst, src) {
 
 /***/ }),
 
-/***/ 14839:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const fs = __nccwpck_require__(35744)
-const path = __nccwpck_require__(16928)
-const mkdirsSync = (__nccwpck_require__(31089).mkdirsSync)
-const utimesMillisSync = (__nccwpck_require__(96934).utimesMillisSync)
-const stat = __nccwpck_require__(90887)
-
-function copySync (src, dest, opts) {
-  if (typeof opts === 'function') {
-    opts = { filter: opts }
-  }
-
-  opts = opts || {}
-  opts.clobber = 'clobber' in opts ? !!opts.clobber : true // default to true for now
-  opts.overwrite = 'overwrite' in opts ? !!opts.overwrite : opts.clobber // overwrite falls back to clobber
-
-  // Warn about using preserveTimestamps on 32-bit node
-  if (opts.preserveTimestamps && process.arch === 'ia32') {
-    process.emitWarning(
-      'Using the preserveTimestamps option in 32-bit node is not recommended;\n\n' +
-      '\tsee https://github.com/jprichardson/node-fs-extra/issues/269',
-      'Warning', 'fs-extra-WARN0002'
-    )
-  }
-
-  const { srcStat, destStat } = stat.checkPathsSync(src, dest, 'copy', opts)
-  stat.checkParentPathsSync(src, srcStat, dest, 'copy')
-  if (opts.filter && !opts.filter(src, dest)) return
-  const destParent = path.dirname(dest)
-  if (!fs.existsSync(destParent)) mkdirsSync(destParent)
-  return getStats(destStat, src, dest, opts)
-}
-
-function getStats (destStat, src, dest, opts) {
-  const statSync = opts.dereference ? fs.statSync : fs.lstatSync
-  const srcStat = statSync(src)
-
-  if (srcStat.isDirectory()) return onDir(srcStat, destStat, src, dest, opts)
-  else if (srcStat.isFile() ||
-           srcStat.isCharacterDevice() ||
-           srcStat.isBlockDevice()) return onFile(srcStat, destStat, src, dest, opts)
-  else if (srcStat.isSymbolicLink()) return onLink(destStat, src, dest, opts)
-  else if (srcStat.isSocket()) throw new Error(`Cannot copy a socket file: ${src}`)
-  else if (srcStat.isFIFO()) throw new Error(`Cannot copy a FIFO pipe: ${src}`)
-  throw new Error(`Unknown file: ${src}`)
-}
-
-function onFile (srcStat, destStat, src, dest, opts) {
-  if (!destStat) return copyFile(srcStat, src, dest, opts)
-  return mayCopyFile(srcStat, src, dest, opts)
-}
-
-function mayCopyFile (srcStat, src, dest, opts) {
-  if (opts.overwrite) {
-    fs.unlinkSync(dest)
-    return copyFile(srcStat, src, dest, opts)
-  } else if (opts.errorOnExist) {
-    throw new Error(`'${dest}' already exists`)
-  }
-}
-
-function copyFile (srcStat, src, dest, opts) {
-  fs.copyFileSync(src, dest)
-  if (opts.preserveTimestamps) handleTimestamps(srcStat.mode, src, dest)
-  return setDestMode(dest, srcStat.mode)
-}
-
-function handleTimestamps (srcMode, src, dest) {
-  // Make sure the file is writable before setting the timestamp
-  // otherwise open fails with EPERM when invoked with 'r+'
-  // (through utimes call)
-  if (fileIsNotWritable(srcMode)) makeFileWritable(dest, srcMode)
-  return setDestTimestamps(src, dest)
-}
-
-function fileIsNotWritable (srcMode) {
-  return (srcMode & 0o200) === 0
-}
-
-function makeFileWritable (dest, srcMode) {
-  return setDestMode(dest, srcMode | 0o200)
-}
-
-function setDestMode (dest, srcMode) {
-  return fs.chmodSync(dest, srcMode)
-}
-
-function setDestTimestamps (src, dest) {
-  // The initial srcStat.atime cannot be trusted
-  // because it is modified by the read(2) system call
-  // (See https://nodejs.org/api/fs.html#fs_stat_time_values)
-  const updatedSrcStat = fs.statSync(src)
-  return utimesMillisSync(dest, updatedSrcStat.atime, updatedSrcStat.mtime)
-}
-
-function onDir (srcStat, destStat, src, dest, opts) {
-  if (!destStat) return mkDirAndCopy(srcStat.mode, src, dest, opts)
-  return copyDir(src, dest, opts)
-}
-
-function mkDirAndCopy (srcMode, src, dest, opts) {
-  fs.mkdirSync(dest)
-  copyDir(src, dest, opts)
-  return setDestMode(dest, srcMode)
-}
-
-function copyDir (src, dest, opts) {
-  const dir = fs.opendirSync(src)
-
-  try {
-    let dirent
-
-    while ((dirent = dir.readSync()) !== null) {
-      copyDirItem(dirent.name, src, dest, opts)
-    }
-  } finally {
-    dir.closeSync()
-  }
-}
-
-function copyDirItem (item, src, dest, opts) {
-  const srcItem = path.join(src, item)
-  const destItem = path.join(dest, item)
-  if (opts.filter && !opts.filter(srcItem, destItem)) return
-  const { destStat } = stat.checkPathsSync(srcItem, destItem, 'copy', opts)
-  return getStats(destStat, srcItem, destItem, opts)
-}
-
-function onLink (destStat, src, dest, opts) {
-  let resolvedSrc = fs.readlinkSync(src)
-  if (opts.dereference) {
-    resolvedSrc = path.resolve(process.cwd(), resolvedSrc)
-  }
-
-  if (!destStat) {
-    return fs.symlinkSync(resolvedSrc, dest)
-  } else {
-    let resolvedDest
-    try {
-      resolvedDest = fs.readlinkSync(dest)
-    } catch (err) {
-      // dest exists and is a regular file or directory,
-      // Windows may throw UNKNOWN error. If dest already exists,
-      // fs throws error anyway, so no need to guard against it here.
-      if (err.code === 'EINVAL' || err.code === 'UNKNOWN') return fs.symlinkSync(resolvedSrc, dest)
-      throw err
-    }
-    if (opts.dereference) {
-      resolvedDest = path.resolve(process.cwd(), resolvedDest)
-    }
-    if (stat.isSrcSubdir(resolvedSrc, resolvedDest)) {
-      throw new Error(`Cannot copy '${resolvedSrc}' to a subdirectory of itself, '${resolvedDest}'.`)
-    }
-
-    // prevent copy if src is a subdir of dest since unlinking
-    // dest in this case would result in removing src contents
-    // and therefore a broken symlink would be created.
-    if (stat.isSrcSubdir(resolvedDest, resolvedSrc)) {
-      throw new Error(`Cannot overwrite '${resolvedDest}' with '${resolvedSrc}'.`)
-    }
-    return copyLink(resolvedSrc, dest)
-  }
-}
-
-function copyLink (resolvedSrc, dest) {
-  fs.unlinkSync(dest)
-  return fs.symlinkSync(resolvedSrc, dest)
-}
-
-module.exports = copySync
-
-
-/***/ }),
-
-/***/ 81759:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const fs = __nccwpck_require__(3506)
-const path = __nccwpck_require__(16928)
-const { mkdirs } = __nccwpck_require__(31089)
-const { pathExists } = __nccwpck_require__(52881)
-const { utimesMillis } = __nccwpck_require__(96934)
-const stat = __nccwpck_require__(90887)
-
-async function copy (src, dest, opts = {}) {
-  if (typeof opts === 'function') {
-    opts = { filter: opts }
-  }
-
-  opts.clobber = 'clobber' in opts ? !!opts.clobber : true // default to true for now
-  opts.overwrite = 'overwrite' in opts ? !!opts.overwrite : opts.clobber // overwrite falls back to clobber
-
-  // Warn about using preserveTimestamps on 32-bit node
-  if (opts.preserveTimestamps && process.arch === 'ia32') {
-    process.emitWarning(
-      'Using the preserveTimestamps option in 32-bit node is not recommended;\n\n' +
-      '\tsee https://github.com/jprichardson/node-fs-extra/issues/269',
-      'Warning', 'fs-extra-WARN0001'
-    )
-  }
-
-  const { srcStat, destStat } = await stat.checkPaths(src, dest, 'copy', opts)
-
-  await stat.checkParentPaths(src, srcStat, dest, 'copy')
-
-  const include = await runFilter(src, dest, opts)
-
-  if (!include) return
-
-  // check if the parent of dest exists, and create it if it doesn't exist
-  const destParent = path.dirname(dest)
-  const dirExists = await pathExists(destParent)
-  if (!dirExists) {
-    await mkdirs(destParent)
-  }
-
-  await getStatsAndPerformCopy(destStat, src, dest, opts)
-}
-
-async function runFilter (src, dest, opts) {
-  if (!opts.filter) return true
-  return opts.filter(src, dest)
-}
-
-async function getStatsAndPerformCopy (destStat, src, dest, opts) {
-  const statFn = opts.dereference ? fs.stat : fs.lstat
-  const srcStat = await statFn(src)
-
-  if (srcStat.isDirectory()) return onDir(srcStat, destStat, src, dest, opts)
-
-  if (
-    srcStat.isFile() ||
-    srcStat.isCharacterDevice() ||
-    srcStat.isBlockDevice()
-  ) return onFile(srcStat, destStat, src, dest, opts)
-
-  if (srcStat.isSymbolicLink()) return onLink(destStat, src, dest, opts)
-  if (srcStat.isSocket()) throw new Error(`Cannot copy a socket file: ${src}`)
-  if (srcStat.isFIFO()) throw new Error(`Cannot copy a FIFO pipe: ${src}`)
-  throw new Error(`Unknown file: ${src}`)
-}
-
-async function onFile (srcStat, destStat, src, dest, opts) {
-  if (!destStat) return copyFile(srcStat, src, dest, opts)
-
-  if (opts.overwrite) {
-    await fs.unlink(dest)
-    return copyFile(srcStat, src, dest, opts)
-  }
-  if (opts.errorOnExist) {
-    throw new Error(`'${dest}' already exists`)
-  }
-}
-
-async function copyFile (srcStat, src, dest, opts) {
-  await fs.copyFile(src, dest)
-  if (opts.preserveTimestamps) {
-    // Make sure the file is writable before setting the timestamp
-    // otherwise open fails with EPERM when invoked with 'r+'
-    // (through utimes call)
-    if (fileIsNotWritable(srcStat.mode)) {
-      await makeFileWritable(dest, srcStat.mode)
-    }
-
-    // Set timestamps and mode correspondingly
-
-    // Note that The initial srcStat.atime cannot be trusted
-    // because it is modified by the read(2) system call
-    // (See https://nodejs.org/api/fs.html#fs_stat_time_values)
-    const updatedSrcStat = await fs.stat(src)
-    await utimesMillis(dest, updatedSrcStat.atime, updatedSrcStat.mtime)
-  }
-
-  return fs.chmod(dest, srcStat.mode)
-}
-
-function fileIsNotWritable (srcMode) {
-  return (srcMode & 0o200) === 0
-}
-
-function makeFileWritable (dest, srcMode) {
-  return fs.chmod(dest, srcMode | 0o200)
-}
-
-async function onDir (srcStat, destStat, src, dest, opts) {
-  // the dest directory might not exist, create it
-  if (!destStat) {
-    await fs.mkdir(dest)
-  }
-
-  const promises = []
-
-  // loop through the files in the current directory to copy everything
-  for await (const item of await fs.opendir(src)) {
-    const srcItem = path.join(src, item.name)
-    const destItem = path.join(dest, item.name)
-
-    promises.push(
-      runFilter(srcItem, destItem, opts).then(include => {
-        if (include) {
-          // only copy the item if it matches the filter function
-          return stat.checkPaths(srcItem, destItem, 'copy', opts).then(({ destStat }) => {
-            // If the item is a copyable file, `getStatsAndPerformCopy` will copy it
-            // If the item is a directory, `getStatsAndPerformCopy` will call `onDir` recursively
-            return getStatsAndPerformCopy(destStat, srcItem, destItem, opts)
-          })
-        }
-      })
-    )
-  }
-
-  await Promise.all(promises)
-
-  if (!destStat) {
-    await fs.chmod(dest, srcStat.mode)
-  }
-}
-
-async function onLink (destStat, src, dest, opts) {
-  let resolvedSrc = await fs.readlink(src)
-  if (opts.dereference) {
-    resolvedSrc = path.resolve(process.cwd(), resolvedSrc)
-  }
-  if (!destStat) {
-    return fs.symlink(resolvedSrc, dest)
-  }
-
-  let resolvedDest = null
-  try {
-    resolvedDest = await fs.readlink(dest)
-  } catch (e) {
-    // dest exists and is a regular file or directory,
-    // Windows may throw UNKNOWN error. If dest already exists,
-    // fs throws error anyway, so no need to guard against it here.
-    if (e.code === 'EINVAL' || e.code === 'UNKNOWN') return fs.symlink(resolvedSrc, dest)
-    throw e
-  }
-  if (opts.dereference) {
-    resolvedDest = path.resolve(process.cwd(), resolvedDest)
-  }
-  if (stat.isSrcSubdir(resolvedSrc, resolvedDest)) {
-    throw new Error(`Cannot copy '${resolvedSrc}' to a subdirectory of itself, '${resolvedDest}'.`)
-  }
-
-  // do not copy if src is a subdir of dest since unlinking
-  // dest in this case would result in removing src contents
-  // and therefore a broken symlink would be created.
-  if (stat.isSrcSubdir(resolvedDest, resolvedSrc)) {
-    throw new Error(`Cannot overwrite '${resolvedDest}' with '${resolvedSrc}'.`)
-  }
-
-  // copy the link
-  await fs.unlink(dest)
-  return fs.symlink(resolvedSrc, dest)
-}
-
-module.exports = copy
-
-
-/***/ }),
-
-/***/ 75796:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const u = (__nccwpck_require__(95077).fromPromise)
-module.exports = {
-  copy: u(__nccwpck_require__(81759)),
-  copySync: __nccwpck_require__(14839)
-}
-
-
-/***/ }),
-
-/***/ 47882:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const u = (__nccwpck_require__(95077).fromPromise)
-const fs = __nccwpck_require__(3506)
-const path = __nccwpck_require__(16928)
-const mkdir = __nccwpck_require__(31089)
-const remove = __nccwpck_require__(56205)
-
-const emptyDir = u(async function emptyDir (dir) {
-  let items
-  try {
-    items = await fs.readdir(dir)
-  } catch {
-    return mkdir.mkdirs(dir)
-  }
-
-  return Promise.all(items.map(item => remove.remove(path.join(dir, item))))
-})
-
-function emptyDirSync (dir) {
-  let items
-  try {
-    items = fs.readdirSync(dir)
-  } catch {
-    return mkdir.mkdirsSync(dir)
-  }
-
-  items.forEach(item => {
-    item = path.join(dir, item)
-    remove.removeSync(item)
-  })
-}
-
-module.exports = {
-  emptyDirSync,
-  emptydirSync: emptyDirSync,
-  emptyDir,
-  emptydir: emptyDir
-}
-
-
-/***/ }),
-
-/***/ 13529:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const u = (__nccwpck_require__(95077).fromPromise)
-const path = __nccwpck_require__(16928)
-const fs = __nccwpck_require__(3506)
-const mkdir = __nccwpck_require__(31089)
-
-async function createFile (file) {
-  let stats
-  try {
-    stats = await fs.stat(file)
-  } catch { }
-  if (stats && stats.isFile()) return
-
-  const dir = path.dirname(file)
-
-  let dirStats = null
-  try {
-    dirStats = await fs.stat(dir)
-  } catch (err) {
-    // if the directory doesn't exist, make it
-    if (err.code === 'ENOENT') {
-      await mkdir.mkdirs(dir)
-      await fs.writeFile(file, '')
-      return
-    } else {
-      throw err
-    }
-  }
-
-  if (dirStats.isDirectory()) {
-    await fs.writeFile(file, '')
-  } else {
-    // parent is not a directory
-    // This is just to cause an internal ENOTDIR error to be thrown
-    await fs.readdir(dir)
-  }
-}
-
-function createFileSync (file) {
-  let stats
-  try {
-    stats = fs.statSync(file)
-  } catch { }
-  if (stats && stats.isFile()) return
-
-  const dir = path.dirname(file)
-  try {
-    if (!fs.statSync(dir).isDirectory()) {
-      // parent is not a directory
-      // This is just to cause an internal ENOTDIR error to be thrown
-      fs.readdirSync(dir)
-    }
-  } catch (err) {
-    // If the stat call above failed because the directory doesn't exist, create it
-    if (err && err.code === 'ENOENT') mkdir.mkdirsSync(dir)
-    else throw err
-  }
-
-  fs.writeFileSync(file, '')
-}
-
-module.exports = {
-  createFile: u(createFile),
-  createFileSync
-}
-
-
-/***/ }),
-
-/***/ 45779:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const { createFile, createFileSync } = __nccwpck_require__(13529)
-const { createLink, createLinkSync } = __nccwpck_require__(38751)
-const { createSymlink, createSymlinkSync } = __nccwpck_require__(84896)
-
-module.exports = {
-  // file
-  createFile,
-  createFileSync,
-  ensureFile: createFile,
-  ensureFileSync: createFileSync,
-  // link
-  createLink,
-  createLinkSync,
-  ensureLink: createLink,
-  ensureLinkSync: createLinkSync,
-  // symlink
-  createSymlink,
-  createSymlinkSync,
-  ensureSymlink: createSymlink,
-  ensureSymlinkSync: createSymlinkSync
-}
-
-
-/***/ }),
-
-/***/ 38751:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const u = (__nccwpck_require__(95077).fromPromise)
-const path = __nccwpck_require__(16928)
-const fs = __nccwpck_require__(3506)
-const mkdir = __nccwpck_require__(31089)
-const { pathExists } = __nccwpck_require__(52881)
-const { areIdentical } = __nccwpck_require__(90887)
-
-async function createLink (srcpath, dstpath) {
-  let dstStat
-  try {
-    dstStat = await fs.lstat(dstpath)
-  } catch {
-    // ignore error
-  }
-
-  let srcStat
-  try {
-    srcStat = await fs.lstat(srcpath)
-  } catch (err) {
-    err.message = err.message.replace('lstat', 'ensureLink')
-    throw err
-  }
-
-  if (dstStat && areIdentical(srcStat, dstStat)) return
-
-  const dir = path.dirname(dstpath)
-
-  const dirExists = await pathExists(dir)
-
-  if (!dirExists) {
-    await mkdir.mkdirs(dir)
-  }
-
-  await fs.link(srcpath, dstpath)
-}
-
-function createLinkSync (srcpath, dstpath) {
-  let dstStat
-  try {
-    dstStat = fs.lstatSync(dstpath)
-  } catch {}
-
-  try {
-    const srcStat = fs.lstatSync(srcpath)
-    if (dstStat && areIdentical(srcStat, dstStat)) return
-  } catch (err) {
-    err.message = err.message.replace('lstat', 'ensureLink')
-    throw err
-  }
-
-  const dir = path.dirname(dstpath)
-  const dirExists = fs.existsSync(dir)
-  if (dirExists) return fs.linkSync(srcpath, dstpath)
-  mkdir.mkdirsSync(dir)
-
-  return fs.linkSync(srcpath, dstpath)
-}
-
-module.exports = {
-  createLink: u(createLink),
-  createLinkSync
-}
-
-
-/***/ }),
-
-/***/ 83121:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const path = __nccwpck_require__(16928)
-const fs = __nccwpck_require__(3506)
-const { pathExists } = __nccwpck_require__(52881)
-
-const u = (__nccwpck_require__(95077).fromPromise)
-
-/**
- * Function that returns two types of paths, one relative to symlink, and one
- * relative to the current working directory. Checks if path is absolute or
- * relative. If the path is relative, this function checks if the path is
- * relative to symlink or relative to current working directory. This is an
- * initiative to find a smarter `srcpath` to supply when building symlinks.
- * This allows you to determine which path to use out of one of three possible
- * types of source paths. The first is an absolute path. This is detected by
- * `path.isAbsolute()`. When an absolute path is provided, it is checked to
- * see if it exists. If it does it's used, if not an error is returned
- * (callback)/ thrown (sync). The other two options for `srcpath` are a
- * relative url. By default Node's `fs.symlink` works by creating a symlink
- * using `dstpath` and expects the `srcpath` to be relative to the newly
- * created symlink. If you provide a `srcpath` that does not exist on the file
- * system it results in a broken symlink. To minimize this, the function
- * checks to see if the 'relative to symlink' source file exists, and if it
- * does it will use it. If it does not, it checks if there's a file that
- * exists that is relative to the current working directory, if does its used.
- * This preserves the expectations of the original fs.symlink spec and adds
- * the ability to pass in `relative to current working direcotry` paths.
- */
-
-async function symlinkPaths (srcpath, dstpath) {
-  if (path.isAbsolute(srcpath)) {
-    try {
-      await fs.lstat(srcpath)
-    } catch (err) {
-      err.message = err.message.replace('lstat', 'ensureSymlink')
-      throw err
-    }
-
-    return {
-      toCwd: srcpath,
-      toDst: srcpath
-    }
-  }
-
-  const dstdir = path.dirname(dstpath)
-  const relativeToDst = path.join(dstdir, srcpath)
-
-  const exists = await pathExists(relativeToDst)
-  if (exists) {
-    return {
-      toCwd: relativeToDst,
-      toDst: srcpath
-    }
-  }
-
-  try {
-    await fs.lstat(srcpath)
-  } catch (err) {
-    err.message = err.message.replace('lstat', 'ensureSymlink')
-    throw err
-  }
-
-  return {
-    toCwd: srcpath,
-    toDst: path.relative(dstdir, srcpath)
-  }
-}
-
-function symlinkPathsSync (srcpath, dstpath) {
-  if (path.isAbsolute(srcpath)) {
-    const exists = fs.existsSync(srcpath)
-    if (!exists) throw new Error('absolute srcpath does not exist')
-    return {
-      toCwd: srcpath,
-      toDst: srcpath
-    }
-  }
-
-  const dstdir = path.dirname(dstpath)
-  const relativeToDst = path.join(dstdir, srcpath)
-  const exists = fs.existsSync(relativeToDst)
-  if (exists) {
-    return {
-      toCwd: relativeToDst,
-      toDst: srcpath
-    }
-  }
-
-  const srcExists = fs.existsSync(srcpath)
-  if (!srcExists) throw new Error('relative srcpath does not exist')
-  return {
-    toCwd: srcpath,
-    toDst: path.relative(dstdir, srcpath)
-  }
-}
-
-module.exports = {
-  symlinkPaths: u(symlinkPaths),
-  symlinkPathsSync
-}
-
-
-/***/ }),
-
-/***/ 87045:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const fs = __nccwpck_require__(3506)
-const u = (__nccwpck_require__(95077).fromPromise)
-
-async function symlinkType (srcpath, type) {
-  if (type) return type
-
-  let stats
-  try {
-    stats = await fs.lstat(srcpath)
-  } catch {
-    return 'file'
-  }
-
-  return (stats && stats.isDirectory()) ? 'dir' : 'file'
-}
-
-function symlinkTypeSync (srcpath, type) {
-  if (type) return type
-
-  let stats
-  try {
-    stats = fs.lstatSync(srcpath)
-  } catch {
-    return 'file'
-  }
-  return (stats && stats.isDirectory()) ? 'dir' : 'file'
-}
-
-module.exports = {
-  symlinkType: u(symlinkType),
-  symlinkTypeSync
-}
-
-
-/***/ }),
-
-/***/ 84896:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const u = (__nccwpck_require__(95077).fromPromise)
-const path = __nccwpck_require__(16928)
-const fs = __nccwpck_require__(3506)
-
-const { mkdirs, mkdirsSync } = __nccwpck_require__(31089)
-
-const { symlinkPaths, symlinkPathsSync } = __nccwpck_require__(83121)
-const { symlinkType, symlinkTypeSync } = __nccwpck_require__(87045)
-
-const { pathExists } = __nccwpck_require__(52881)
-
-const { areIdentical } = __nccwpck_require__(90887)
-
-async function createSymlink (srcpath, dstpath, type) {
-  let stats
-  try {
-    stats = await fs.lstat(dstpath)
-  } catch { }
-
-  if (stats && stats.isSymbolicLink()) {
-    const [srcStat, dstStat] = await Promise.all([
-      fs.stat(srcpath),
-      fs.stat(dstpath)
-    ])
-
-    if (areIdentical(srcStat, dstStat)) return
-  }
-
-  const relative = await symlinkPaths(srcpath, dstpath)
-  srcpath = relative.toDst
-  const toType = await symlinkType(relative.toCwd, type)
-  const dir = path.dirname(dstpath)
-
-  if (!(await pathExists(dir))) {
-    await mkdirs(dir)
-  }
-
-  return fs.symlink(srcpath, dstpath, toType)
-}
-
-function createSymlinkSync (srcpath, dstpath, type) {
-  let stats
-  try {
-    stats = fs.lstatSync(dstpath)
-  } catch { }
-  if (stats && stats.isSymbolicLink()) {
-    const srcStat = fs.statSync(srcpath)
-    const dstStat = fs.statSync(dstpath)
-    if (areIdentical(srcStat, dstStat)) return
-  }
-
-  const relative = symlinkPathsSync(srcpath, dstpath)
-  srcpath = relative.toDst
-  type = symlinkTypeSync(relative.toCwd, type)
-  const dir = path.dirname(dstpath)
-  const exists = fs.existsSync(dir)
-  if (exists) return fs.symlinkSync(srcpath, dstpath, type)
-  mkdirsSync(dir)
-  return fs.symlinkSync(srcpath, dstpath, type)
-}
-
-module.exports = {
-  createSymlink: u(createSymlink),
-  createSymlinkSync
-}
-
-
-/***/ }),
-
-/***/ 3506:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-// This is adapted from https://github.com/normalize/mz
-// Copyright (c) 2014-2016 Jonathan Ong me@jongleberry.com and Contributors
-const u = (__nccwpck_require__(95077).fromCallback)
-const fs = __nccwpck_require__(35744)
-
-const api = [
-  'access',
-  'appendFile',
-  'chmod',
-  'chown',
-  'close',
-  'copyFile',
-  'cp',
-  'fchmod',
-  'fchown',
-  'fdatasync',
-  'fstat',
-  'fsync',
-  'ftruncate',
-  'futimes',
-  'glob',
-  'lchmod',
-  'lchown',
-  'lutimes',
-  'link',
-  'lstat',
-  'mkdir',
-  'mkdtemp',
-  'open',
-  'opendir',
-  'readdir',
-  'readFile',
-  'readlink',
-  'realpath',
-  'rename',
-  'rm',
-  'rmdir',
-  'stat',
-  'statfs',
-  'symlink',
-  'truncate',
-  'unlink',
-  'utimes',
-  'writeFile'
-].filter(key => {
-  // Some commands are not available on some systems. Ex:
-  // fs.cp was added in Node.js v16.7.0
-  // fs.statfs was added in Node v19.6.0, v18.15.0
-  // fs.glob was added in Node.js v22.0.0
-  // fs.lchown is not available on at least some Linux
-  return typeof fs[key] === 'function'
-})
-
-// Export cloned fs:
-Object.assign(exports, fs)
-
-// Universalify async methods:
-api.forEach(method => {
-  exports[method] = u(fs[method])
-})
-
-// We differ from mz/fs in that we still ship the old, broken, fs.exists()
-// since we are a drop-in replacement for the native module
-exports.exists = function (filename, callback) {
-  if (typeof callback === 'function') {
-    return fs.exists(filename, callback)
-  }
-  return new Promise(resolve => {
-    return fs.exists(filename, resolve)
-  })
-}
-
-// fs.read(), fs.write(), fs.readv(), & fs.writev() need special treatment due to multiple callback args
-
-exports.read = function (fd, buffer, offset, length, position, callback) {
-  if (typeof callback === 'function') {
-    return fs.read(fd, buffer, offset, length, position, callback)
-  }
-  return new Promise((resolve, reject) => {
-    fs.read(fd, buffer, offset, length, position, (err, bytesRead, buffer) => {
-      if (err) return reject(err)
-      resolve({ bytesRead, buffer })
-    })
-  })
-}
-
-// Function signature can be
-// fs.write(fd, buffer[, offset[, length[, position]]], callback)
-// OR
-// fs.write(fd, string[, position[, encoding]], callback)
-// We need to handle both cases, so we use ...args
-exports.write = function (fd, buffer, ...args) {
-  if (typeof args[args.length - 1] === 'function') {
-    return fs.write(fd, buffer, ...args)
-  }
-
-  return new Promise((resolve, reject) => {
-    fs.write(fd, buffer, ...args, (err, bytesWritten, buffer) => {
-      if (err) return reject(err)
-      resolve({ bytesWritten, buffer })
-    })
-  })
-}
-
-// Function signature is
-// s.readv(fd, buffers[, position], callback)
-// We need to handle the optional arg, so we use ...args
-exports.readv = function (fd, buffers, ...args) {
-  if (typeof args[args.length - 1] === 'function') {
-    return fs.readv(fd, buffers, ...args)
-  }
-
-  return new Promise((resolve, reject) => {
-    fs.readv(fd, buffers, ...args, (err, bytesRead, buffers) => {
-      if (err) return reject(err)
-      resolve({ bytesRead, buffers })
-    })
-  })
-}
-
-// Function signature is
-// s.writev(fd, buffers[, position], callback)
-// We need to handle the optional arg, so we use ...args
-exports.writev = function (fd, buffers, ...args) {
-  if (typeof args[args.length - 1] === 'function') {
-    return fs.writev(fd, buffers, ...args)
-  }
-
-  return new Promise((resolve, reject) => {
-    fs.writev(fd, buffers, ...args, (err, bytesWritten, buffers) => {
-      if (err) return reject(err)
-      resolve({ bytesWritten, buffers })
-    })
-  })
-}
-
-// fs.realpath.native sometimes not available if fs is monkey-patched
-if (typeof fs.realpath.native === 'function') {
-  exports.realpath.native = u(fs.realpath.native)
-} else {
-  process.emitWarning(
-    'fs.realpath.native is not a function. Is fs being monkey-patched?',
-    'Warning', 'fs-extra-WARN0003'
-  )
-}
-
-
-/***/ }),
-
-/***/ 72136:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-module.exports = {
-  // Export promiseified graceful-fs:
-  ...__nccwpck_require__(3506),
-  // Export extra methods:
-  ...__nccwpck_require__(75796),
-  ...__nccwpck_require__(47882),
-  ...__nccwpck_require__(45779),
-  ...__nccwpck_require__(68471),
-  ...__nccwpck_require__(31089),
-  ...__nccwpck_require__(92076),
-  ...__nccwpck_require__(35229),
-  ...__nccwpck_require__(52881),
-  ...__nccwpck_require__(56205)
-}
-
-
-/***/ }),
-
-/***/ 68471:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const u = (__nccwpck_require__(95077).fromPromise)
-const jsonFile = __nccwpck_require__(86239)
-
-jsonFile.outputJson = u(__nccwpck_require__(3753))
-jsonFile.outputJsonSync = __nccwpck_require__(90425)
-// aliases
-jsonFile.outputJSON = jsonFile.outputJson
-jsonFile.outputJSONSync = jsonFile.outputJsonSync
-jsonFile.writeJSON = jsonFile.writeJson
-jsonFile.writeJSONSync = jsonFile.writeJsonSync
-jsonFile.readJSON = jsonFile.readJson
-jsonFile.readJSONSync = jsonFile.readJsonSync
-
-module.exports = jsonFile
-
-
-/***/ }),
-
-/***/ 86239:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const jsonFile = __nccwpck_require__(92064)
-
-module.exports = {
-  // jsonfile exports
-  readJson: jsonFile.readFile,
-  readJsonSync: jsonFile.readFileSync,
-  writeJson: jsonFile.writeFile,
-  writeJsonSync: jsonFile.writeFileSync
-}
-
-
-/***/ }),
-
-/***/ 90425:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const { stringify } = __nccwpck_require__(79449)
-const { outputFileSync } = __nccwpck_require__(35229)
-
-function outputJsonSync (file, data, options) {
-  const str = stringify(data, options)
-
-  outputFileSync(file, str, options)
-}
-
-module.exports = outputJsonSync
-
-
-/***/ }),
-
-/***/ 3753:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const { stringify } = __nccwpck_require__(79449)
-const { outputFile } = __nccwpck_require__(35229)
-
-async function outputJson (file, data, options = {}) {
-  const str = stringify(data, options)
-
-  await outputFile(file, str, options)
-}
-
-module.exports = outputJson
-
-
-/***/ }),
-
-/***/ 31089:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-const u = (__nccwpck_require__(95077).fromPromise)
-const { makeDir: _makeDir, makeDirSync } = __nccwpck_require__(89625)
-const makeDir = u(_makeDir)
-
-module.exports = {
-  mkdirs: makeDir,
-  mkdirsSync: makeDirSync,
-  // alias
-  mkdirp: makeDir,
-  mkdirpSync: makeDirSync,
-  ensureDir: makeDir,
-  ensureDirSync: makeDirSync
-}
-
-
-/***/ }),
-
-/***/ 89625:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-const fs = __nccwpck_require__(3506)
-const { checkPath } = __nccwpck_require__(83388)
-
-const getMode = options => {
-  const defaults = { mode: 0o777 }
-  if (typeof options === 'number') return options
-  return ({ ...defaults, ...options }).mode
-}
-
-module.exports.makeDir = async (dir, options) => {
-  checkPath(dir)
-
-  return fs.mkdir(dir, {
-    mode: getMode(options),
-    recursive: true
-  })
-}
-
-module.exports.makeDirSync = (dir, options) => {
-  checkPath(dir)
-
-  return fs.mkdirSync(dir, {
-    mode: getMode(options),
-    recursive: true
-  })
-}
-
-
-/***/ }),
-
-/***/ 83388:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-// Adapted from https://github.com/sindresorhus/make-dir
-// Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-const path = __nccwpck_require__(16928)
-
-// https://github.com/nodejs/node/issues/8987
-// https://github.com/libuv/libuv/pull/1088
-module.exports.checkPath = function checkPath (pth) {
-  if (process.platform === 'win32') {
-    const pathHasInvalidWinCharacters = /[<>:"|?*]/.test(pth.replace(path.parse(pth).root, ''))
-
-    if (pathHasInvalidWinCharacters) {
-      const error = new Error(`Path contains invalid characters: ${pth}`)
-      error.code = 'EINVAL'
-      throw error
-    }
-  }
-}
-
-
-/***/ }),
-
-/***/ 92076:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const u = (__nccwpck_require__(95077).fromPromise)
-module.exports = {
-  move: u(__nccwpck_require__(47751)),
-  moveSync: __nccwpck_require__(89951)
-}
-
-
-/***/ }),
-
-/***/ 89951:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const fs = __nccwpck_require__(35744)
-const path = __nccwpck_require__(16928)
-const copySync = (__nccwpck_require__(75796).copySync)
-const removeSync = (__nccwpck_require__(56205).removeSync)
-const mkdirpSync = (__nccwpck_require__(31089).mkdirpSync)
-const stat = __nccwpck_require__(90887)
-
-function moveSync (src, dest, opts) {
-  opts = opts || {}
-  const overwrite = opts.overwrite || opts.clobber || false
-
-  const { srcStat, isChangingCase = false } = stat.checkPathsSync(src, dest, 'move', opts)
-  stat.checkParentPathsSync(src, srcStat, dest, 'move')
-  if (!isParentRoot(dest)) mkdirpSync(path.dirname(dest))
-  return doRename(src, dest, overwrite, isChangingCase)
-}
-
-function isParentRoot (dest) {
-  const parent = path.dirname(dest)
-  const parsedPath = path.parse(parent)
-  return parsedPath.root === parent
-}
-
-function doRename (src, dest, overwrite, isChangingCase) {
-  if (isChangingCase) return rename(src, dest, overwrite)
-  if (overwrite) {
-    removeSync(dest)
-    return rename(src, dest, overwrite)
-  }
-  if (fs.existsSync(dest)) throw new Error('dest already exists.')
-  return rename(src, dest, overwrite)
-}
-
-function rename (src, dest, overwrite) {
-  try {
-    fs.renameSync(src, dest)
-  } catch (err) {
-    if (err.code !== 'EXDEV') throw err
-    return moveAcrossDevice(src, dest, overwrite)
-  }
-}
-
-function moveAcrossDevice (src, dest, overwrite) {
-  const opts = {
-    overwrite,
-    errorOnExist: true,
-    preserveTimestamps: true
-  }
-  copySync(src, dest, opts)
-  return removeSync(src)
-}
-
-module.exports = moveSync
-
-
-/***/ }),
-
-/***/ 47751:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const fs = __nccwpck_require__(3506)
-const path = __nccwpck_require__(16928)
-const { copy } = __nccwpck_require__(75796)
-const { remove } = __nccwpck_require__(56205)
-const { mkdirp } = __nccwpck_require__(31089)
-const { pathExists } = __nccwpck_require__(52881)
-const stat = __nccwpck_require__(90887)
-
-async function move (src, dest, opts = {}) {
-  const overwrite = opts.overwrite || opts.clobber || false
-
-  const { srcStat, isChangingCase = false } = await stat.checkPaths(src, dest, 'move', opts)
-
-  await stat.checkParentPaths(src, srcStat, dest, 'move')
-
-  // If the parent of dest is not root, make sure it exists before proceeding
-  const destParent = path.dirname(dest)
-  const parsedParentPath = path.parse(destParent)
-  if (parsedParentPath.root !== destParent) {
-    await mkdirp(destParent)
-  }
-
-  return doRename(src, dest, overwrite, isChangingCase)
-}
-
-async function doRename (src, dest, overwrite, isChangingCase) {
-  if (!isChangingCase) {
-    if (overwrite) {
-      await remove(dest)
-    } else if (await pathExists(dest)) {
-      throw new Error('dest already exists.')
-    }
-  }
-
-  try {
-    // Try w/ rename first, and try copy + remove if EXDEV
-    await fs.rename(src, dest)
-  } catch (err) {
-    if (err.code !== 'EXDEV') {
-      throw err
-    }
-    await moveAcrossDevice(src, dest, overwrite)
-  }
-}
-
-async function moveAcrossDevice (src, dest, overwrite) {
-  const opts = {
-    overwrite,
-    errorOnExist: true,
-    preserveTimestamps: true
-  }
-
-  await copy(src, dest, opts)
-  return remove(src)
-}
-
-module.exports = move
-
-
-/***/ }),
-
-/***/ 35229:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const u = (__nccwpck_require__(95077).fromPromise)
-const fs = __nccwpck_require__(3506)
-const path = __nccwpck_require__(16928)
-const mkdir = __nccwpck_require__(31089)
-const pathExists = (__nccwpck_require__(52881).pathExists)
-
-async function outputFile (file, data, encoding = 'utf-8') {
-  const dir = path.dirname(file)
-
-  if (!(await pathExists(dir))) {
-    await mkdir.mkdirs(dir)
-  }
-
-  return fs.writeFile(file, data, encoding)
-}
-
-function outputFileSync (file, ...args) {
-  const dir = path.dirname(file)
-  if (!fs.existsSync(dir)) {
-    mkdir.mkdirsSync(dir)
-  }
-
-  fs.writeFileSync(file, ...args)
-}
-
-module.exports = {
-  outputFile: u(outputFile),
-  outputFileSync
-}
-
-
-/***/ }),
-
-/***/ 52881:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-const u = (__nccwpck_require__(95077).fromPromise)
-const fs = __nccwpck_require__(3506)
-
-function pathExists (path) {
-  return fs.access(path).then(() => true).catch(() => false)
-}
-
-module.exports = {
-  pathExists: u(pathExists),
-  pathExistsSync: fs.existsSync
-}
-
-
-/***/ }),
-
-/***/ 56205:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const fs = __nccwpck_require__(35744)
-const u = (__nccwpck_require__(95077).fromCallback)
-
-function remove (path, callback) {
-  fs.rm(path, { recursive: true, force: true }, callback)
-}
-
-function removeSync (path) {
-  fs.rmSync(path, { recursive: true, force: true })
-}
-
-module.exports = {
-  remove: u(remove),
-  removeSync
-}
-
-
-/***/ }),
-
-/***/ 90887:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const fs = __nccwpck_require__(3506)
-const path = __nccwpck_require__(16928)
-const u = (__nccwpck_require__(95077).fromPromise)
-
-function getStats (src, dest, opts) {
-  const statFunc = opts.dereference
-    ? (file) => fs.stat(file, { bigint: true })
-    : (file) => fs.lstat(file, { bigint: true })
-  return Promise.all([
-    statFunc(src),
-    statFunc(dest).catch(err => {
-      if (err.code === 'ENOENT') return null
-      throw err
-    })
-  ]).then(([srcStat, destStat]) => ({ srcStat, destStat }))
-}
-
-function getStatsSync (src, dest, opts) {
-  let destStat
-  const statFunc = opts.dereference
-    ? (file) => fs.statSync(file, { bigint: true })
-    : (file) => fs.lstatSync(file, { bigint: true })
-  const srcStat = statFunc(src)
-  try {
-    destStat = statFunc(dest)
-  } catch (err) {
-    if (err.code === 'ENOENT') return { srcStat, destStat: null }
-    throw err
-  }
-  return { srcStat, destStat }
-}
-
-async function checkPaths (src, dest, funcName, opts) {
-  const { srcStat, destStat } = await getStats(src, dest, opts)
-  if (destStat) {
-    if (areIdentical(srcStat, destStat)) {
-      const srcBaseName = path.basename(src)
-      const destBaseName = path.basename(dest)
-      if (funcName === 'move' &&
-        srcBaseName !== destBaseName &&
-        srcBaseName.toLowerCase() === destBaseName.toLowerCase()) {
-        return { srcStat, destStat, isChangingCase: true }
-      }
-      throw new Error('Source and destination must not be the same.')
-    }
-    if (srcStat.isDirectory() && !destStat.isDirectory()) {
-      throw new Error(`Cannot overwrite non-directory '${dest}' with directory '${src}'.`)
-    }
-    if (!srcStat.isDirectory() && destStat.isDirectory()) {
-      throw new Error(`Cannot overwrite directory '${dest}' with non-directory '${src}'.`)
-    }
-  }
-
-  if (srcStat.isDirectory() && isSrcSubdir(src, dest)) {
-    throw new Error(errMsg(src, dest, funcName))
-  }
-
-  return { srcStat, destStat }
-}
-
-function checkPathsSync (src, dest, funcName, opts) {
-  const { srcStat, destStat } = getStatsSync(src, dest, opts)
-
-  if (destStat) {
-    if (areIdentical(srcStat, destStat)) {
-      const srcBaseName = path.basename(src)
-      const destBaseName = path.basename(dest)
-      if (funcName === 'move' &&
-        srcBaseName !== destBaseName &&
-        srcBaseName.toLowerCase() === destBaseName.toLowerCase()) {
-        return { srcStat, destStat, isChangingCase: true }
-      }
-      throw new Error('Source and destination must not be the same.')
-    }
-    if (srcStat.isDirectory() && !destStat.isDirectory()) {
-      throw new Error(`Cannot overwrite non-directory '${dest}' with directory '${src}'.`)
-    }
-    if (!srcStat.isDirectory() && destStat.isDirectory()) {
-      throw new Error(`Cannot overwrite directory '${dest}' with non-directory '${src}'.`)
-    }
-  }
-
-  if (srcStat.isDirectory() && isSrcSubdir(src, dest)) {
-    throw new Error(errMsg(src, dest, funcName))
-  }
-  return { srcStat, destStat }
-}
-
-// recursively check if dest parent is a subdirectory of src.
-// It works for all file types including symlinks since it
-// checks the src and dest inodes. It starts from the deepest
-// parent and stops once it reaches the src parent or the root path.
-async function checkParentPaths (src, srcStat, dest, funcName) {
-  const srcParent = path.resolve(path.dirname(src))
-  const destParent = path.resolve(path.dirname(dest))
-  if (destParent === srcParent || destParent === path.parse(destParent).root) return
-
-  let destStat
-  try {
-    destStat = await fs.stat(destParent, { bigint: true })
-  } catch (err) {
-    if (err.code === 'ENOENT') return
-    throw err
-  }
-
-  if (areIdentical(srcStat, destStat)) {
-    throw new Error(errMsg(src, dest, funcName))
-  }
-
-  return checkParentPaths(src, srcStat, destParent, funcName)
-}
-
-function checkParentPathsSync (src, srcStat, dest, funcName) {
-  const srcParent = path.resolve(path.dirname(src))
-  const destParent = path.resolve(path.dirname(dest))
-  if (destParent === srcParent || destParent === path.parse(destParent).root) return
-  let destStat
-  try {
-    destStat = fs.statSync(destParent, { bigint: true })
-  } catch (err) {
-    if (err.code === 'ENOENT') return
-    throw err
-  }
-  if (areIdentical(srcStat, destStat)) {
-    throw new Error(errMsg(src, dest, funcName))
-  }
-  return checkParentPathsSync(src, srcStat, destParent, funcName)
-}
-
-function areIdentical (srcStat, destStat) {
-  return destStat.ino && destStat.dev && destStat.ino === srcStat.ino && destStat.dev === srcStat.dev
-}
-
-// return true if dest is a subdir of src, otherwise false.
-// It only checks the path strings.
-function isSrcSubdir (src, dest) {
-  const srcArr = path.resolve(src).split(path.sep).filter(i => i)
-  const destArr = path.resolve(dest).split(path.sep).filter(i => i)
-  return srcArr.every((cur, i) => destArr[i] === cur)
-}
-
-function errMsg (src, dest, funcName) {
-  return `Cannot ${funcName} '${src}' to a subdirectory of itself, '${dest}'.`
-}
-
-module.exports = {
-  // checkPaths
-  checkPaths: u(checkPaths),
-  checkPathsSync,
-  // checkParent
-  checkParentPaths: u(checkParentPaths),
-  checkParentPathsSync,
-  // Misc
-  isSrcSubdir,
-  areIdentical
-}
-
-
-/***/ }),
-
-/***/ 96934:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const fs = __nccwpck_require__(3506)
-const u = (__nccwpck_require__(95077).fromPromise)
-
-async function utimesMillis (path, atime, mtime) {
-  // if (!HAS_MILLIS_RES) return fs.utimes(path, atime, mtime, callback)
-  const fd = await fs.open(path, 'r+')
-
-  let closeErr = null
-
-  try {
-    await fs.futimes(fd, atime, mtime)
-  } finally {
-    try {
-      await fs.close(fd)
-    } catch (e) {
-      closeErr = e
-    }
-  }
-
-  if (closeErr) {
-    throw closeErr
-  }
-}
-
-function utimesMillisSync (path, atime, mtime) {
-  const fd = fs.openSync(path, 'r+')
-  fs.futimesSync(fd, atime, mtime)
-  return fs.closeSync(fd)
-}
-
-module.exports = {
-  utimesMillis: u(utimesMillis),
-  utimesMillisSync
-}
-
-
-/***/ }),
-
 /***/ 99808:
 /***/ ((module) => {
 
@@ -31547,122 +29927,6 @@ if (
     REGIX_IS_WINDOWS_PATH_ABSOLUTE.test(path)
     || isNotRelative(path)
 }
-
-
-/***/ }),
-
-/***/ 92064:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-let _fs
-try {
-  _fs = __nccwpck_require__(35744)
-} catch (_) {
-  _fs = __nccwpck_require__(79896)
-}
-const universalify = __nccwpck_require__(95077)
-const { stringify, stripBom } = __nccwpck_require__(79449)
-
-async function _readFile (file, options = {}) {
-  if (typeof options === 'string') {
-    options = { encoding: options }
-  }
-
-  const fs = options.fs || _fs
-
-  const shouldThrow = 'throws' in options ? options.throws : true
-
-  let data = await universalify.fromCallback(fs.readFile)(file, options)
-
-  data = stripBom(data)
-
-  let obj
-  try {
-    obj = JSON.parse(data, options ? options.reviver : null)
-  } catch (err) {
-    if (shouldThrow) {
-      err.message = `${file}: ${err.message}`
-      throw err
-    } else {
-      return null
-    }
-  }
-
-  return obj
-}
-
-const readFile = universalify.fromPromise(_readFile)
-
-function readFileSync (file, options = {}) {
-  if (typeof options === 'string') {
-    options = { encoding: options }
-  }
-
-  const fs = options.fs || _fs
-
-  const shouldThrow = 'throws' in options ? options.throws : true
-
-  try {
-    let content = fs.readFileSync(file, options)
-    content = stripBom(content)
-    return JSON.parse(content, options.reviver)
-  } catch (err) {
-    if (shouldThrow) {
-      err.message = `${file}: ${err.message}`
-      throw err
-    } else {
-      return null
-    }
-  }
-}
-
-async function _writeFile (file, obj, options = {}) {
-  const fs = options.fs || _fs
-
-  const str = stringify(obj, options)
-
-  await universalify.fromCallback(fs.writeFile)(file, str, options)
-}
-
-const writeFile = universalify.fromPromise(_writeFile)
-
-function writeFileSync (file, obj, options = {}) {
-  const fs = options.fs || _fs
-
-  const str = stringify(obj, options)
-  // not sure if fs.writeFileSync returns anything, but just in case
-  return fs.writeFileSync(file, str, options)
-}
-
-const jsonfile = {
-  readFile,
-  readFileSync,
-  writeFile,
-  writeFileSync
-}
-
-module.exports = jsonfile
-
-
-/***/ }),
-
-/***/ 79449:
-/***/ ((module) => {
-
-function stringify (obj, { EOL = '\n', finalEOL = true, replacer = null, spaces } = {}) {
-  const EOF = finalEOL ? EOL : ''
-  const str = JSON.stringify(obj, replacer, spaces)
-
-  return str.replace(/\n/g, EOL) + EOF
-}
-
-function stripBom (content) {
-  // we do this because JSON.parse would convert it to a utf8 string if encoding wasn't specified
-  if (Buffer.isBuffer(content)) content = content.toString('utf8')
-  return content.replace(/^\uFEFF/, '')
-}
-
-module.exports = { stringify, stripBom }
 
 
 /***/ }),
@@ -74102,38 +72366,6 @@ exports.getUserAgent = getUserAgent;
 
 /***/ }),
 
-/***/ 95077:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-
-exports.fromCallback = function (fn) {
-  return Object.defineProperty(function (...args) {
-    if (typeof args[args.length - 1] === 'function') fn.apply(this, args)
-    else {
-      return new Promise((resolve, reject) => {
-        args.push((err, res) => (err != null) ? reject(err) : resolve(res))
-        fn.apply(this, args)
-      })
-    }
-  }, 'name', { value: fn.name })
-}
-
-exports.fromPromise = function (fn) {
-  return Object.defineProperty(function (...args) {
-    const cb = args[args.length - 1]
-    if (typeof cb !== 'function') return fn.apply(this, args)
-    else {
-      args.pop()
-      fn.apply(this, args).then(r => cb(null, r), cb)
-    }
-  }, 'name', { value: fn.name })
-}
-
-
-/***/ }),
-
 /***/ 97291:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -78746,7 +76978,7 @@ const config_1 = __nccwpck_require__(81122);
 const logger = new logger_1.Logger('FtTestExecuter');
 class FtTestExecuter {
     static async process(testInfos) {
-        logger.debug(`process: mbtTestInfos.length=${testInfos.length} ...`);
+        logger.debug(`process: testInfos.length=${testInfos.length} ...`);
         const wsPath = process.env.RUNNER_WORKSPACE; // e.g., C:\GitHub_runner\_work\ufto-tests\
         await (0, utils_1.checkReadWriteAccess)(wsPath);
         const suffix = (0, utils_1.getTimestamp)();
@@ -78788,9 +77020,10 @@ class FtTestExecuter {
         let xml = "<Mtbx>\n";
         testInfos.map(async (testInfo, i) => {
             const idx = i + 1;
+            const runId = testInfo.runId;
             const name = testInfo.testName;
             const fullPath = path.join(wsPath, FTL_1.default._MBT, `_${idx}`, name);
-            xml += `  <Test name="${name}" path="${fullPath}" />\n`;
+            xml += `\t<Test runId="${runId}" name="${name}" path="${fullPath}" />\n`;
         });
         xml += `</Mtbx>`;
         await fs_1.promises.writeFile(mtbxFullPath, xml, 'utf8');
@@ -79159,6 +77392,440 @@ class TestParserFactory {
     }
 }
 exports["default"] = TestParserFactory;
+
+
+/***/ }),
+
+/***/ 32905:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.CaseResult = void 0;
+const utils_1 = __nccwpck_require__(35268);
+class CaseResult {
+    constructor(parent, attrs) {
+        this.errorStackTrace = "";
+        this.errorDetails = "";
+        let classname = attrs.classname ?? parent.name;
+        let nameAttr = attrs.name;
+        if (!classname && nameAttr.contains(".")) {
+            classname = nameAttr.substring(0, nameAttr.lastIndexOf('.'));
+            nameAttr = nameAttr.substring(nameAttr.lastIndexOf('.') + 1);
+        }
+        this.className = classname ?? "unnamed";
+        this.testName = nameAttr;
+        this.parent = parent;
+        this.stdout = null;
+        this.stderr = null;
+        this.duration = (0, utils_1.parseTimeToFloat)(attrs.time);
+        this.skipped = false;
+        this.skippedMessage = null;
+    }
+    toXML(indent = 2) {
+        const tabs = "\t".repeat(indent);
+        let xml = `${tabs}<case>\n`;
+        xml += `${tabs}\t<duration>${this.duration.toFixed(5)}</duration>\n`;
+        xml += `${tabs}\t<className>${(0, utils_1.escapeXML)(this.className)}</className>\n`;
+        xml += `${tabs}\t<testName>${(0, utils_1.escapeXML)(this.testName)}</testName>\n`;
+        xml += `${tabs}\t<skipped>${this.skipped}</skipped>\n`;
+        xml += `${tabs}\t<skippedMessage>${(0, utils_1.escapeXML)(this.skippedMessage)}</skippedMessage>\n`;
+        xml += `${tabs}\t<stdout>${(0, utils_1.escapeXML)(this.stdout)}</stdout>\n`;
+        xml += `${tabs}\t<errorStackTrace>${(0, utils_1.escapeXML)(this.errorStackTrace)}</errorStackTrace>\n`;
+        xml += `${tabs}\t<errorDetails>${(0, utils_1.escapeXML)(this.errorDetails)}</errorDetails>\n`;
+        xml += `${tabs}</case>\n`;
+        return xml;
+    }
+}
+exports.CaseResult = CaseResult;
+
+
+/***/ }),
+
+/***/ 40521:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.JUnitParser = void 0;
+const logger_1 = __nccwpck_require__(7893);
+const TestResult_1 = __nccwpck_require__(61613);
+const logger = new logger_1.Logger('JUnitParser');
+class JUnitParser {
+    constructor(xmlResFilePath, keepLongStdio, externalAssets = "") {
+        this.keepLongStdio = keepLongStdio;
+        this.xmlResFilePath = xmlResFilePath;
+        this.externalAssets = externalAssets;
+    }
+    async parseResult() {
+        logger.info(`parseResult: [${this.xmlResFilePath}] ...`);
+        if (!this.xmlResFilePath) {
+            return new TestResult_1.TestResult();
+        }
+        const testRes = new TestResult_1.TestResult(this.keepLongStdio);
+        await testRes.parsePossiblyEmpty(this.xmlResFilePath, this.externalAssets);
+        return testRes;
+    }
+}
+exports.JUnitParser = JUnitParser;
+
+
+/***/ }),
+
+/***/ 13767:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SuiteResult = void 0;
+const logger_1 = __nccwpck_require__(7893);
+const fs = __importStar(__nccwpck_require__(79896));
+const sax = __importStar(__nccwpck_require__(42560));
+const CaseResult_1 = __nccwpck_require__(32905);
+const utils_1 = __nccwpck_require__(35268);
+const logger = new logger_1.Logger('SuiteResult');
+class SuiteResult {
+    constructor(xmlResFilePath, suite = null) {
+        this.file = null;
+        this.name = "";
+        this.externalAssets = "";
+        this.enclosingBlocks = [];
+        this.enclosingBlockNames = [];
+        this.stdout = "";
+        this.stderr = "";
+        this.cases = [];
+        this.duration = 0;
+        this.runId = "";
+        this.id = "";
+        this.casesByName = new Map();
+        this.time = "";
+        this.timestamp = "";
+        if (suite) {
+            const attrs = suite.attributes;
+            let name = attrs.name;
+            if (name == null) {
+                name = `(${xmlResFilePath})`;
+            }
+            else {
+                const pkg = attrs.package;
+                pkg && (name = `${pkg}.${name}`);
+            }
+            this.name = name.replace(/[/\\:?#%<>]/g, '_');
+            this.file = xmlResFilePath;
+            this.runId = attrs.runId ?? "";
+            this.id = attrs.id ?? "";
+            this.timestamp = attrs.timestamp ?? "";
+            if (attrs.time) {
+                this.duration = (0, utils_1.parseTimeToFloat)(attrs.time);
+            }
+        }
+        else {
+            const name = `(${xmlResFilePath})`;
+            this.name = name.replace(/[/\\:?#%<>]/g, '_');
+        }
+    }
+    static async parse(xmlFilePath, keepLongStdio) {
+        const r = [];
+        await this.parseXML(xmlFilePath, keepLongStdio, r);
+        return r;
+    }
+    static parseXML(xmlFilePath, keepLongStdio, r) {
+        logger.debug(`parseXML: [${xmlFilePath}], keepLongStdio=${keepLongStdio} ...`);
+        return new Promise((resolve, reject) => {
+            const parser = sax.createStream(true, { trim: true });
+            let testSuite = null;
+            let testCase = null;
+            let currentText = "";
+            let suiteStack = []; // Track suite hierarchy
+            let nodeName = "";
+            const handleOpentag = (node) => {
+                logger.debug(`handleOpentag: ${node.name}`);
+                nodeName = node.name;
+                const attrs = node.attributes;
+                if (nodeName === "testsuite") {
+                    testSuite = new SuiteResult(xmlFilePath, node);
+                    r.push(testSuite); // Add to root result array immediately
+                    suiteStack.push(testSuite); // Push to stack to track hierarchy
+                }
+                else if (nodeName === "testcase") {
+                    if (!testSuite) {
+                        logger.warn("Testcase found outside of a testsuite, skipping.");
+                        return;
+                    }
+                    testCase = new CaseResult_1.CaseResult(testSuite, attrs);
+                    const runId = attrs.runId ?? "0";
+                    if (runId && runId !== "0") {
+                        testSuite.runId = runId; // TODO handle runId properly for multiple cases
+                    }
+                }
+                else if (nodeName === "error" || nodeName === "failure") {
+                    currentText = "";
+                }
+                else if (nodeName === "skipped") {
+                    if (testCase) {
+                        testCase.skipped = true;
+                        testCase.skippedMessage = attrs.message || "";
+                    }
+                }
+            };
+            const handleText = (text) => {
+                logger.debug(`handleText: ${text}`);
+                if (testCase) {
+                    if (nodeName === "system-out") {
+                        testCase.stdout = this.possiblyTrimStdio(testCase, keepLongStdio, text);
+                    }
+                    else if (nodeName === "system-err") {
+                        testCase.stderr = this.possiblyTrimStdio(testCase, keepLongStdio, text);
+                    }
+                    else if ((nodeName === "error" || nodeName === "failure")) {
+                        currentText += text;
+                    }
+                }
+            };
+            const handleClosetag = (tagName) => {
+                logger.debug(`handleClosetag: ${tagName}`);
+                if (testSuite) {
+                    if (testCase) {
+                        if (tagName === "testcase") {
+                            testSuite.addCase(testCase);
+                            testCase = null;
+                        }
+                        else if (tagName === "error" || tagName === "failure") {
+                            testCase.errorStackTrace = currentText;
+                            testCase.errorDetails = currentText;
+                        }
+                    }
+                    else if (tagName === "testsuite") {
+                        suiteStack.pop(); // Pop current suite from stack
+                        testSuite = suiteStack.length > 0 ? suiteStack[suiteStack.length - 1] : null; // Restore parent suite or null
+                    }
+                }
+            };
+            parser.on('opentag', handleOpentag);
+            parser.on('text', handleText);
+            parser.on('closetag', handleClosetag);
+            parser.on('error', (error) => {
+                logger.error("parseXML: ", error);
+                reject(error);
+            });
+            parser.on('end', () => {
+                logger.debug(`parseXML: XML parsing completed.`);
+                resolve();
+            });
+            fs.createReadStream(xmlFilePath).pipe(parser);
+        });
+    }
+    addCase(cr) {
+        this.cases.push(cr);
+        this.casesByName.set(cr.testName, cr);
+        if (!this.hasTimeAttr()) {
+            this.duration += cr.duration;
+        }
+    }
+    hasTimeAttr() {
+        return this.time !== "";
+    }
+    merge(sr) {
+        if (sr.hasTimeAttr() !== this.hasTimeAttr()) {
+            logger.warn("Merging of suiteresults with incompatible time attribute may lead to incorrect durations in reports.");
+        }
+        if (this.hasTimeAttr()) {
+            this.duration += sr.duration;
+        }
+        for (const cr of sr.cases) {
+            this.addCase(cr);
+            cr.parent = this;
+        }
+    }
+    static possiblyTrimStdio(testCase, keepLongStdio, stdio) {
+        if (stdio == null) {
+            return null;
+        }
+        if (keepLongStdio) {
+            return stdio;
+        }
+        const len = stdio.length;
+        const halfMaxSize = testCase.errorStackTrace ? 50000 : 500;
+        const middle = len - halfMaxSize * 2;
+        if (middle <= 0) {
+            return stdio;
+        }
+        return stdio.substring(0, halfMaxSize) + "\n...[truncated " + middle + " chars]...\n" + stdio.substring(len - halfMaxSize, len);
+    }
+    toXML(indent = 1) {
+        const tabs = "\t".repeat(indent);
+        let xml = `${tabs}<suite>\n`;
+        xml += `${tabs}\t<file>${(0, utils_1.escapeXML)(this.file)}</file>\n`;
+        xml += `${tabs}\t<name>${(0, utils_1.escapeXML)(this.name)}</name>\n`;
+        xml += `${tabs}\t<enclosingBlocks>${this.enclosingBlocks.length > 0 ? (0, utils_1.escapeXML)(this.enclosingBlocks.join(",")) : ""}</enclosingBlocks>\n`;
+        xml += `${tabs}\t<enclosingBlockNames>${this.enclosingBlockNames.length > 0 ? (0, utils_1.escapeXML)(this.enclosingBlockNames.join(",")) : ""}</enclosingBlockNames>\n`;
+        xml += `${tabs}\t<duration>${this.duration.toFixed(5)}</duration>\n`;
+        xml += `${tabs}\t<runId>${(0, utils_1.escapeXML)(this.runId)}</runId>\n`;
+        xml += `${tabs}\t<cases>\n`;
+        for (const testCase of this.cases) {
+            xml += testCase.toXML(indent + 2);
+        }
+        xml += `${tabs}\t</cases>\n`;
+        xml += `${tabs}</suite>\n`;
+        return xml;
+    }
+}
+exports.SuiteResult = SuiteResult;
+
+
+/***/ }),
+
+/***/ 61613:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.TestResult = void 0;
+const fs = __importStar(__nccwpck_require__(79896));
+const SuiteResult_1 = __nccwpck_require__(13767);
+const logger_1 = __nccwpck_require__(7893);
+const logger = new logger_1.Logger('TestResult');
+class TestResult {
+    constructor(keepLongStdio = false) {
+        this.suites = [];
+        this.keepLongStdio = keepLongStdio;
+        this.duration = 0;
+    }
+    async parsePossiblyEmpty(xmlResFilePath, externalAssets) {
+        if (fs.statSync(xmlResFilePath).size === 0) {
+            const sr = new SuiteResult_1.SuiteResult(xmlResFilePath);
+            //sr.addCase(new CaseResult(sr, "[empty]", "Test report file " + xmlResFilePath + " was length 0"));
+            this.add(sr);
+        }
+        else {
+            await this.parse(xmlResFilePath, externalAssets);
+        }
+    }
+    async parse(xmlResFilePath, externalAssets) {
+        logger.debug(`parse: Parsing XML file [${xmlResFilePath}], keepLongStdio=${this.keepLongStdio} ...`);
+        try {
+            for (const suiteResult of await SuiteResult_1.SuiteResult.parse(xmlResFilePath, this.keepLongStdio)) {
+                if (externalAssets) {
+                    suiteResult.externalAssets = this.updateExternalAssetPath(suiteResult, externalAssets);
+                }
+                this.add(suiteResult);
+            }
+        }
+        catch (e) {
+            logger.error(`parse: Failed to parse [${xmlResFilePath}]`, e);
+        }
+    }
+    add(sr) {
+        for (const s of this.suites) {
+            if (s.name === sr.name &&
+                s.id === sr.id /*&&
+            s.enclosingBlocks === sr.enclosingBlocks &&
+            s.enclosingBlockNames === sr.enclosingBlockNames*/ //TODO check if really needed
+            ) {
+                if (s.timestamp === sr.timestamp) {
+                    return;
+                }
+                this.duration += sr.duration;
+                s.merge(sr);
+                return;
+            }
+        }
+        this.suites.push(sr);
+        this.duration += sr.duration;
+    }
+    updateExternalAssetPath(suite, externalAssets) {
+        if (!externalAssets) {
+            logger.debug(`updateExternalAssetPath: There is no external assets for suite ${suite.name}`);
+            return "";
+        }
+        // TODO Parse and update external assets
+        return externalAssets;
+    }
+    toXML() {
+        let xml = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n';
+        xml += '<result>\n';
+        xml += `\t<keepLongStdio>${this.keepLongStdio}</keepLongStdio>\n`;
+        xml += `\t<duration>${this.duration.toFixed(5)}</duration>\n`;
+        xml += '\t<suites>\n';
+        for (const suite of this.suites) {
+            xml += suite.toXML(2); // Indent suite elements by 2 tabs
+        }
+        xml += '\t</suites>\n';
+        xml += '</result>\n';
+        return xml;
+    }
+}
+exports.TestResult = TestResult;
 
 
 /***/ }),
@@ -79673,55 +78340,27 @@ const parseYamlToCiParameters = (yamlContent) => {
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.sendJUnitTestResults = void 0;
-const path = __importStar(__nccwpck_require__(16928));
+//import * as path from 'path';
 const alm_octane_test_result_convertion_1 = __nccwpck_require__(71909);
-const fs_extra_1 = __importDefault(__nccwpck_require__(72136));
+//import fsExtra from 'fs-extra';
 const octaneClient_1 = __importDefault(__nccwpck_require__(9212));
 const logger_1 = __nccwpck_require__(7893);
 const FrameworkType_1 = __nccwpck_require__(21485);
+const JUnitParser_1 = __nccwpck_require__(40521);
 const logger = new logger_1.Logger('testResultsService');
 const sendTestResults = async (resFullPath, buildContext) => {
     logger.info(`sendTestResults: [${resFullPath}] ...`);
-    const fileContent = fs_extra_1.default.readFileSync(resFullPath, 'utf-8');
-    const octaneXml = (0, alm_octane_test_result_convertion_1.convertJUnitXMLToOctaneXML)(fileContent, buildContext, FrameworkType_1.FrameworkType.OTFunctionalTesting);
+    //const fileContent = fsExtra.readFileSync(resFullPath, 'utf-8');
+    //const octaneXml = convertJUnitXMLToOctaneXML(fileContent, buildContext, FrameworkType.OTFunctionalTesting);
+    const parser = new JUnitParser_1.JUnitParser(resFullPath, false, 'assets'); // TODO assets 
+    const res = await parser.parseResult();
+    const junitXml = res.toXML();
+    const octaneXml = (0, alm_octane_test_result_convertion_1.convertJUnitXMLToOctaneXML)(junitXml, buildContext, FrameworkType_1.FrameworkType.JUnit);
     logger.debug(`Converted XML: ${octaneXml}`);
     try {
         await octaneClient_1.default.sendTestResult(octaneXml, buildContext.server_id, buildContext.job_id, buildContext.build_id);
@@ -79734,8 +78373,8 @@ const sendTestResults = async (resFullPath, buildContext) => {
 };
 const sendJUnitTestResults = async (workflowRunId, jobId, serverId, resFullPath) => {
     logger.debug('sendJUnitTestResults: ...');
-    const resFileName = path.basename(resFullPath);
-    const buildContext = { server_id: serverId, build_id: `${workflowRunId}`, job_id: jobId, external_run_id: undefined, artifact_id: resFileName };
+    //const resFileName = path.basename(resFullPath);
+    const buildContext = { server_id: serverId, build_id: `${workflowRunId}`, job_id: jobId, external_run_id: undefined, artifact_id: undefined };
     await sendTestResults(resFullPath, buildContext);
     logger.info('JUnit test results processed and sent successfully.');
 };
@@ -79960,7 +78599,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.checkFileExists = exports.checkReadWriteAccess = exports.escapePropVal = exports.getTimestamp = exports.getFileIfExist = exports.getApiTestDocument = exports.getGuiTestDocument = exports.extractXmlFromTspOrMtrFile = exports.getSafeDomParser = exports.calcByExpr = exports.extractActionNameFromActionPath = exports.extractActionLogicalNameFromActionPath = exports.extractScmPathFromActionPath = exports.extractScmTestPath = exports.getTestPathPrefix = exports.escapeQueryVal = exports.sleep = exports.isVersionGreaterOrEqual = exports.extractWorkflowFileName = void 0;
+exports.parseTimeToFloat = exports.escapeXML = exports.checkFileExists = exports.checkReadWriteAccess = exports.escapePropVal = exports.getTimestamp = exports.getFileIfExist = exports.getApiTestDocument = exports.getGuiTestDocument = exports.extractXmlFromTspOrMtrFile = exports.getSafeDomParser = exports.calcByExpr = exports.extractActionNameFromActionPath = exports.extractActionLogicalNameFromActionPath = exports.extractScmPathFromActionPath = exports.extractScmTestPath = exports.getTestPathPrefix = exports.escapeQueryVal = exports.sleep = exports.isVersionGreaterOrEqual = exports.extractWorkflowFileName = void 0;
 exports.getHeadCommitSha = getHeadCommitSha;
 exports.isBlank = isBlank;
 exports.isTestMainFile = isTestMainFile;
@@ -80333,6 +78972,29 @@ const checkFileExists = async (fullPath) => {
     }
 };
 exports.checkFileExists = checkFileExists;
+const escapeXML = (str) => {
+    if (!str)
+        return "";
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+};
+exports.escapeXML = escapeXML;
+const parseTimeToFloat = (time) => {
+    if (time) {
+        try {
+            return parseFloat(time.replace(",", ""));
+        }
+        catch (e) {
+            // hmm, don't know what this format is.
+        }
+    }
+    return NaN;
+};
+exports.parseTimeToFloat = parseTimeToFloat;
 
 
 /***/ }),
@@ -112740,6 +111402,12 @@ async function run() {
     }
 }
 run();
+/*async function run2() {
+  const parser = new JUnitParser(true, 'D:\\Work\\VEFT\\Design\\results2.xml', 'assets');
+  const res = await parser.parseResult()
+  logger.debug(res.toXML());
+}
+run2();*/ 
 
 })();
 

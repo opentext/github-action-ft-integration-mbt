@@ -27,20 +27,26 @@
  * limitations under the License.
  */
 
-import * as path from 'path';
+//import * as path from 'path';
 import { convertJUnitXMLToOctaneXML } from '@microfocus/alm-octane-test-result-convertion';
-import fsExtra from 'fs-extra';
+//import fsExtra from 'fs-extra';
 import OctaneClient from '../client/octaneClient';
 import { Logger } from '../utils/logger';
 import OctaneBuildConfig from '@microfocus/alm-octane-test-result-convertion/dist/service/OctaneBuildConfig';
 import { FrameworkType } from '@microfocus/alm-octane-test-result-convertion/dist/model/common/FrameworkType';
+import { JUnitParser } from '../reporting/JUnitParser';
 
 const logger: Logger = new Logger('testResultsService');
 
 const sendTestResults = async (resFullPath: string, buildContext: OctaneBuildConfig) => {
   logger.info(`sendTestResults: [${resFullPath}] ...`);
-  const fileContent = fsExtra.readFileSync(resFullPath, 'utf-8');
-  const octaneXml = convertJUnitXMLToOctaneXML(fileContent, buildContext, FrameworkType.OTFunctionalTesting);
+  //const fileContent = fsExtra.readFileSync(resFullPath, 'utf-8');
+  //const octaneXml = convertJUnitXMLToOctaneXML(fileContent, buildContext, FrameworkType.OTFunctionalTesting);
+  const parser = new JUnitParser(resFullPath, false, 'assets'); // TODO assets 
+  const res = await parser.parseResult()
+  const junitXml = res.toXML();
+  const octaneXml = convertJUnitXMLToOctaneXML(junitXml, buildContext, FrameworkType.JUnit);
+
   logger.debug(`Converted XML: ${octaneXml}`);
 
   try {
@@ -54,8 +60,8 @@ const sendTestResults = async (resFullPath: string, buildContext: OctaneBuildCon
 
 const sendJUnitTestResults = async (workflowRunId: number, jobId: string, serverId: string, resFullPath: string) => {
   logger.debug('sendJUnitTestResults: ...');
-  const resFileName = path.basename(resFullPath);
-  const buildContext: OctaneBuildConfig = { server_id: serverId, build_id: `${workflowRunId}`, job_id: jobId, external_run_id: undefined, artifact_id: resFileName };
+  //const resFileName = path.basename(resFullPath);
+  const buildContext: OctaneBuildConfig = { server_id: serverId, build_id: `${workflowRunId}`, job_id: jobId, external_run_id: undefined, artifact_id: undefined };
   await sendTestResults(resFullPath, buildContext);
   logger.info('JUnit test results processed and sent successfully.');
 };

@@ -11,7 +11,7 @@ const logger = new Logger('FtTestExecuter');
 
 export default class FtTestExecuter {
   public static async process(testInfos: UftTestInfo[]): Promise<{ exitCode: ExitCode; resFullPath: string }> {
-    logger.debug(`process: mbtTestInfos.length=${testInfos.length} ...`);
+    logger.debug(`process: testInfos.length=${testInfos.length} ...`);
     const wsPath = process.env.RUNNER_WORKSPACE!; // e.g., C:\GitHub_runner\_work\ufto-tests\
     await checkReadWriteAccess(wsPath);
     const suffix = getTimestamp();
@@ -23,9 +23,7 @@ export default class FtTestExecuter {
     return { exitCode, resFullPath: resFullPath };
   }
 
-  private static async createPropsFile(wsPath: string, suffix: string,
-    testInfos: UftTestInfo[]): Promise<{ propsFullPath: string, resFullPath: string }> {
-
+  private static async createPropsFile(wsPath: string, suffix: string, testInfos: UftTestInfo[]): Promise<{ propsFullPath: string, resFullPath: string }> {
     const propsFullPath = path.join(wsPath, `props_${suffix}.txt`);
     const resFullPath = path.join(wsPath, `results_${suffix}.xml`);
     const mtbxFullPath = path.join(wsPath, `testsuite_${suffix}.mtbx`);
@@ -59,9 +57,10 @@ export default class FtTestExecuter {
     let xml = "<Mtbx>\n";
     testInfos.map(async (testInfo, i) => {
       const idx = i + 1;
+      const runId = testInfo.runId;
       const name = testInfo.testName;
       const fullPath = path.join(wsPath, FTL._MBT, `_${idx}`, name);
-      xml += `  <Test name="${name}" path="${fullPath}" />\n`;
+      xml += `\t<Test runId="${runId}" name="${name}" path="${fullPath}" />\n`;
     });
     xml += `</Mtbx>`;
 
