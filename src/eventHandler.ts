@@ -55,7 +55,6 @@ import MbtPreTestExecuter from './mbt/MbtPreTestExecuter';
 import { ExitCode } from './ft/ExitCode';
 import FtTestExecuter from './ft/FtTestExecuter';
 import { CiCausesType, Result } from './dto/octane/events/CiTypes';
-import { convertJUnitXMLToOctaneXML } from '@microfocus/alm-octane-test-result-convertion';
 import { sendJUnitTestResults } from './service/testResultsService';
 
 const logger: Logger = new Logger('eventHandler');

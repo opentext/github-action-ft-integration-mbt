@@ -30,7 +30,6 @@
 import { setFailed } from '@actions/core';
 import { handleCurrentEvent } from './eventHandler';
 import { Logger } from './utils/logger';
-import { JUnitParser } from './reporting/JUnitParser';
 const logger: Logger = new Logger('Main');
 
 async function run () {
@@ -58,10 +57,3 @@ async function run () {
 }
 
 run();
-
-/*async function run2() {
-  const parser = new JUnitParser(true, 'D:\\Work\\VEFT\\Design\\results2.xml', 'assets');
-  const res = await parser.parseResult()
-  logger.debug(res.toXML());
-}
-run2();*/

@@ -45,6 +45,7 @@ interface Config {
   repo: string;
   repoUrl: string;
   logLevel: number;
+  workPath: string; // Path to the workspace directory process.env.RUNNER_WORKSPACE!
 }
 
 const serverUrl = context.serverUrl;
@@ -71,7 +72,8 @@ try {
     owner: owner,
     repo: repo,
     repoUrl: `${serverUrl}/${owner}/${repo}.git`,
-    logLevel: Number.parseInt(getInput('logLevel').trim())
+    logLevel: Number.parseInt(getInput('logLevel').trim()),
+    workPath: process.env.RUNNER_WORKSPACE! // e.g., C:\GitHub_runner\_work\ufto-tests\
   };
 } catch (error: any) {
   errorLoadingConfig = error.message;

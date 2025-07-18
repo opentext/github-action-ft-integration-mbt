@@ -16,7 +16,6 @@ export class SuiteResult {
   public stderr: string = "";
   public cases: CaseResult[] = [];
   public duration: number = 0;
-  public runId: string = "";
   public id: string = "";
   private casesByName: Map<string, CaseResult> = new Map<string, CaseResult>();
   private time: string = "";
@@ -34,7 +33,6 @@ export class SuiteResult {
       }
       this.name = name.replace(/[/\\:?#%<>]/g, '_');
       this.file = xmlResFilePath;
-      this.runId = attrs.runId ?? "";
       this.id = attrs.id ?? "";
       this.timestamp = attrs.timestamp ?? "";
       if (attrs.time) {
@@ -77,10 +75,6 @@ export class SuiteResult {
             return;
           }
           testCase = new CaseResult(testSuite, attrs);
-          const runId = attrs.runId as string ?? "0";
-          if (runId && runId !== "0") {
-            testSuite.runId = runId; // TODO handle runId properly for multiple cases
-          }
         } else if (nodeName === "error" || nodeName === "failure") {
           currentText = "";
         } else if (nodeName === "skipped") {
@@ -160,8 +154,8 @@ export class SuiteResult {
     }
 
     for (const cr of sr.cases) {
-      this.addCase(cr);
       cr.parent = this;
+      this.addCase(cr);
     }
   }
 
@@ -189,7 +183,6 @@ export class SuiteResult {
     xml += `${tabs}\t<enclosingBlocks>${this.enclosingBlocks.length > 0 ? escapeXML(this.enclosingBlocks.join(",")) : ""}</enclosingBlocks>\n`;
     xml += `${tabs}\t<enclosingBlockNames>${this.enclosingBlockNames.length > 0 ? escapeXML(this.enclosingBlockNames.join(",")) : ""}</enclosingBlockNames>\n`;
     xml += `${tabs}\t<duration>${this.duration.toFixed(5)}</duration>\n`;
-    xml += `${tabs}\t<runId>${escapeXML(this.runId)}</runId>\n`;
     xml += `${tabs}\t<cases>\n`;
     for (const testCase of this.cases) {
       xml += testCase.toXML(indent + 2);

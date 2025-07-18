@@ -27,27 +27,31 @@
  * limitations under the License.
  */
 
-//import * as path from 'path';
+import * as path from 'path';
 import { convertJUnitXMLToOctaneXML } from '@microfocus/alm-octane-test-result-convertion';
-//import fsExtra from 'fs-extra';
+import fsExtra from 'fs-extra';
 import OctaneClient from '../client/octaneClient';
 import { Logger } from '../utils/logger';
 import OctaneBuildConfig from '@microfocus/alm-octane-test-result-convertion/dist/service/OctaneBuildConfig';
-import { FrameworkType } from '@microfocus/alm-octane-test-result-convertion/dist/model/common/FrameworkType';
 import { JUnitParser } from '../reporting/JUnitParser';
+import { config } from '../config/config';
+import FTL from '../ft/FTL';
+import { TestResultManager } from '../reporting/TestResultManager';
 
 const logger: Logger = new Logger('testResultsService');
 
-const sendTestResults = async (resFullPath: string, buildContext: OctaneBuildConfig) => {
+const sendTestResults = async (buildId: number, resFullPath: string, buildContext: OctaneBuildConfig) => {
   logger.info(`sendTestResults: [${resFullPath}] ...`);
   //const fileContent = fsExtra.readFileSync(resFullPath, 'utf-8');
   //const octaneXml = convertJUnitXMLToOctaneXML(fileContent, buildContext, FrameworkType.OTFunctionalTesting);
   const parser = new JUnitParser(resFullPath, false, 'assets'); // TODO assets 
-  const res = await parser.parseResult()
-  const junitXml = res.toXML();
-  const octaneXml = convertJUnitXMLToOctaneXML(junitXml, buildContext, FrameworkType.JUnit);
-
-  logger.debug(`Converted XML: ${octaneXml}`);
+  const junitRes = await parser.parseResult()
+  //const octaneXml = convertJUnitXMLToOctaneXML(res.toXML(), buildContext);
+  const junitResXmlFilePath = path.join(config.workPath, FTL._MBT, 'junitResult.xml');
+  await fsExtra.writeFile(junitResXmlFilePath, junitRes.toXML());
+  const mqmTestsXmlFilePath = await TestResultManager.buildOctaneXmlFile(buildContext.job_name!, buildId, junitRes);
+  const octaneXml = await fsExtra.readFile(mqmTestsXmlFilePath, 'utf-8');
+  //logger.debug(`Converted XML: ${octaneXml}`);
 
   try {
     await OctaneClient.sendTestResult(octaneXml, buildContext.server_id, buildContext.job_id, buildContext.build_id)
@@ -62,7 +66,7 @@ const sendJUnitTestResults = async (workflowRunId: number, jobId: string, server
   logger.debug('sendJUnitTestResults: ...');
   //const resFileName = path.basename(resFullPath);
   const buildContext: OctaneBuildConfig = { server_id: serverId, build_id: `${workflowRunId}`, job_id: jobId, external_run_id: undefined, artifact_id: undefined };
-  await sendTestResults(resFullPath, buildContext);
+  await sendTestResults(workflowRunId, resFullPath, buildContext);
   logger.info('JUnit test results processed and sent successfully.');
 };
 
