@@ -59,7 +59,7 @@ export default class FtTestExecuter {
       const runId = testInfo.runId;
       const name = testInfo.testName;
       const fullPath = path.join(config.workPath, FTL._MBT, `${runId}`, name);
-      xml += `\t<Test runId="${runId}" name="${name}" path="${fullPath}" />\n`;
+      xml += `\t<Test runid="${runId}" name="${name}" path="${fullPath}" />\n`;
     });
     xml += `</Mtbx>`;
 
