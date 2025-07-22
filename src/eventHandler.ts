@@ -58,7 +58,7 @@ import { CiCausesType, Result } from './dto/octane/events/CiTypes';
 import { publishResultsToOctane } from './service/testResultsService';
 
 const logger: Logger = new Logger('eventHandler');
-const requiredKeys: WorkflowInputsKeys[] = ['executionId', 'suiteId', 'suiteRunId'];
+const requiredKeys: WorkflowInputsKeys[] = ['executionId', 'suiteId', 'suiteRunId', 'testsToRun'];
 
 export const handleCurrentEvent = async (): Promise<void> => {
   logger.info('BEGIN handleEvent ...');

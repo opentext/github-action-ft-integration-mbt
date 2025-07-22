@@ -40,16 +40,12 @@ const logger: Logger = new Logger('testResultsService');
 
 const sendTestResults = async (serverId: string, jobId: string, buildId: number, resFullPath: string) => {
   logger.info(`sendTestResults: [${resFullPath}] ...`);
-  //const fileContent = fsExtra.readFileSync(resFullPath, 'utf-8');
-  //const octaneXml = convertJUnitXMLToOctaneXML(fileContent, buildContext, FrameworkType.OTFunctionalTesting);
   const parser = new JUnitParser(resFullPath, false, 'assets'); // TODO assets 
   const junitRes = await parser.parseResult();
-  //const octaneXml = convertJUnitXMLToOctaneXML(res.toXML(), buildContext);
   const junitResXmlFilePath = path.join(config.workPath, FTL._MBT, 'junitResult.xml');
   await fsExtra.writeFile(junitResXmlFilePath, junitRes.toXML());
   const mqmTestsXmlFilePath = await TestResultManager.buildOctaneXmlFile(serverId, jobId, buildId, junitRes);
   const octaneXml = await fsExtra.readFile(mqmTestsXmlFilePath, 'utf-8');
-  //logger.debug(`Converted XML: ${octaneXml}`);
 
   try {
     await OctaneClient.sendTestResult(octaneXml, serverId, jobId, buildId);

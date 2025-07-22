@@ -78,8 +78,6 @@ export default class OctaneClient {
   private static CI_API_URL = `/api/shared_spaces/${config.octaneSharedSpace}/workspaces/${config.octaneWorkspace}`;
 
   public static sendEvent = async (event: CiEvent, instanceId: string, url: string): Promise<void> => {
-    this.logger.debug(`sendEvent: instanceId=[${instanceId}]: `, event);
-
     const ciServerInfo: CiServerInfo = {
       instanceId,
       type: this.GITHUB_ACTIONS,
@@ -89,29 +87,21 @@ export default class OctaneClient {
     };
 
     const body: CiEventsList = { server: ciServerInfo, events: [event] };
-
-    await this.octane.executeCustomRequest(`${this.ANALYTICS_CI_INTERNAL_API_URL}/events`, Octane.operationTypes.update, body);
+    const customUrl = `${this.ANALYTICS_CI_INTERNAL_API_URL}/events`;
+    this.logger.debug(`sendEvent: PUT ${customUrl}`, body);
+    await this.octane.executeCustomRequest(customUrl, Octane.operationTypes.update, body);
   };
 
-  public static sendTestResult = async (testResult: string, instanceId: string, jobId: string, buildId: number): Promise<void> => {
-    this.logger.debug(`sendTestResult: jobId='${jobId}, buildId='${buildId}', instanceId='${instanceId}' ...`);
-
-    await this.octane.executeCustomRequest(
-      `${this.ANALYTICS_CI_INTERNAL_API_URL}/test-results?skip-errors=true&instance-id=${instanceId}&job-ci-id=${jobId}&build-ci-id=${buildId}`,
-      Octane.operationTypes.create,
-      testResult,
-      { 'Content-Type': 'application/xml' }
-    );
+  public static sendTestResult = async (xml: string, instanceId: string, jobId: string, buildId: number): Promise<void> => {
+    const url = `${this.ANALYTICS_CI_INTERNAL_API_URL}/test-results?skip-errors=true&instance-id=${instanceId}&job-ci-id=${jobId}&build-ci-id=${buildId}`;
+    this.logger.debug(`sendTestResult: POST ${url} ...`);
+    this.logger.debug(xml);
+    await this.octane.executeCustomRequest(url, Octane.operationTypes.create, xml, { 'Content-Type': 'application/xml' });
   };
 
-  private static createCIServer = async (name: string, instanceId: string, url: string): Promise<CiServer> => {
-    const body: CiServerBody = {
-      name: name,
-      instance_id: instanceId,
-      server_type: this.GITHUB_ACTIONS,
-      url: url
-    };
-    this.logger.debug(`createCIServer: ${JSON.stringify(body)} ...`);
+  private static createCIServer = async (name: string, instance_id: string, url: string): Promise<CiServer> => {
+    const body: CiServerBody = { name, instance_id, server_type: this.GITHUB_ACTIONS, url };
+    this.logger.debug(`createCIServer: ...`, body);
     const fldNames = ['id', 'name', 'instance_id', 'plugin_version', 'url', 'is_connected', 'server_type'];
     const res = await this.octane.create(CI_SERVERS, body).fields(...fldNames).execute();
     return res.data[0];
@@ -212,9 +202,9 @@ export default class OctaneClient {
       scm_type: 2, // GIT
       scm_url: config.repoUrl,
     };
-    this.logger.debug(`createMbtTestRunner: ${JSON.stringify(body)} ...`);
-
-    const entry = await this.octane.executeCustomRequest(`${this.CI_INTERNAL_API_URL}/je/test_runners/uft`, Octane.operationTypes.create, body);
+    const url = `${this.CI_INTERNAL_API_URL}/je/test_runners/uft`;
+    this.logger.debug(`createMbtTestRunner: POST ${url}`, body);
+    const entry = await this.octane.executeCustomRequest(url, Octane.operationTypes.create, body);
 
     if (!entry || entry.total_count === 0) {
       throw Error('Could not create the test runner entity.');
