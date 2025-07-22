@@ -52,7 +52,6 @@ export class MqmTestResultsBuilder {
       }
 
       const xmlString = root.end({ pretty: true });
-      logger.debug(xmlString); // Log the XML string to ensure it contains data
 
       // Use Promises for file stream operations
       await new Promise((resolve, reject) => {

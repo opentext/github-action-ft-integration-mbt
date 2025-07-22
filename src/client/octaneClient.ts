@@ -89,6 +89,7 @@ export default class OctaneClient {
     const body: CiEventsList = { server: ciServerInfo, events: [event] };
     const customUrl = `${this.ANALYTICS_CI_INTERNAL_API_URL}/events`;
     this.logger.debug(`sendEvent: PUT ${customUrl}`, body);
+    this.logger.debug(JSON.stringify(body, null, 2));
     await this.octane.executeCustomRequest(customUrl, Octane.operationTypes.update, body);
   };
 
@@ -146,23 +147,6 @@ export default class OctaneClient {
     return ciServer;
   };
 
-  public static getCiServersByType = async (serverType: string): Promise<CiServer[]> => {
-    this.logger.debug(`getCiServersByType: serverType=${serverType} ...`);
-
-    const ciServerQuery = Query.field(SERVER_TYPE).equal(serverType).build();
-    const fldNames = ['id', 'instance_id', 'plugin_version'];
-    const res = await this.octane.get(CI_SERVERS).fields(...fldNames).query(ciServerQuery).execute();
-    if (!res || !res.total_count || !res.data.length) {
-      return [];
-    }
-    const entries = res.data;
-    entries.forEach((e: CiServer) => {
-      this.logger.debug("CI Server:", e);
-    });
-
-    return entries;
-  };
-
   public static getExecutor = async (ciServerId: number, name: string, subType: string): Promise<CiExecutor | null> => {
     this.logger.debug(`getExecutor: ciServerId=${ciServerId}, name=${name} ...`);
     const q = Query.field(CI_SERVER).equal(Query.field(ID).equal(ciServerId))
@@ -203,7 +187,8 @@ export default class OctaneClient {
       scm_url: config.repoUrl,
     };
     const url = `${this.CI_INTERNAL_API_URL}/je/test_runners/uft`;
-    this.logger.debug(`createMbtTestRunner: POST ${url}`, body);
+    this.logger.debug(`createMbtTestRunner: POST ${url}`);
+    this.logger.debug(JSON.stringify(body, null, 2));
     const entry = await this.octane.executeCustomRequest(url, Octane.operationTypes.create, body);
 
     if (!entry || entry.total_count === 0) {
