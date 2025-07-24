@@ -28,10 +28,9 @@
  */
 import * as path from 'path';
 import * as fs from 'fs';
-import { ArtifactClient, create } from '@actions/artifact';
+import artifact from '@actions/artifact';
 import { getOctokit, context } from '@actions/github';
 import { ActionsJob } from '../dto/github/ActionsJob';
-import Artifact from '../dto/github/Artifact';
 import Commit from '../dto/github/Commit';
 import WorkflowRun from '../dto/github/WorkflowRun';
 import WorkflowRunStatus from '../dto/github/WorkflowRunStatus';
@@ -105,16 +104,16 @@ export default class GitHubClient {
     return (await this.octokit.rest.actions.getWorkflowRun({ ..._owner_repo, run_id: workflowRunId })).data;
   };
 
-  public static getWorkflowRunArtifacts = async (workflowRunId: number): Promise<Artifact[]> => {
+/*  public static getWorkflowRunArtifacts = async (workflowRunId: number): Promise<Artifact[]> => {
     this.logger.debug(`getWorkflowRunArtifacts: run_id='${workflowRunId}' ...`);
 
     return await this.octokit.paginate(this.octokit.rest.actions.listWorkflowRunArtifacts,
       { ..._owner_repo, run_id: workflowRunId, per_page: 100 },
       response => response.data
     );
-  };
+  };*/
 
-  public static uploadArtifact = async (runResXmlfileFullPath: string, artifactName: string = "artifact1"): Promise<string> => {
+  public static uploadArtifact = async (runResXmlfileFullPath: string, artifactName: string = "artifact1"): Promise<number> => {
     try {
       this.logger.debug(`uploadArtifact: '${runResXmlfileFullPath}' ...`);
 
@@ -122,22 +121,20 @@ export default class GitHubClient {
 
       //const uniqueArtifactName = `${artifactName}${Date.now()}`; // Ensure unique name
       this.logger.debug(`Uploading artifact ${artifactName} ...`);
-      const artifactClient: ArtifactClient = create();
-      const uploadResponse = await artifactClient.uploadArtifact(artifactName, [runResXmlfileFullPath],
-        path.dirname(runResXmlfileFullPath),
-        { continueOnError: false } // Stop on error
+      const uploadResponse = await artifact.uploadArtifact(artifactName, [runResXmlfileFullPath],
+        path.dirname(runResXmlfileFullPath)
       );
 
-      this.logger.info(`Artifact ${uploadResponse.artifactName} uploaded successfully.`);
-      return uploadResponse.artifactName;
+      this.logger.info(`Artifact ${uploadResponse.id} uploaded successfully.`);
+      return uploadResponse.id ?? 0;
     } catch (error) {
       this.logger.error(`uploadArtifact: ${error instanceof Error ? error.message : String(error)}`);
       //throw error; // Re-throw to allow caller to handle
-      return "";
+      return 0;
     }
   };
 
-  public static uploadArtifacts = async (parentPath: string, paths: string[], skipInvalidPaths: boolean = true): Promise<string> => {
+  public static uploadArtifacts = async (parentPath: string, paths: string[], skipInvalidPaths: boolean = true): Promise<number> => {
     try {
       let filesToUpload: string[] = [];
 
@@ -169,14 +166,10 @@ export default class GitHubClient {
 
       const uniqueArtifactName = `reports-${Date.now()}`; // Ensure unique name
       this.logger.debug(`Uploading artifact ${uniqueArtifactName} with ${filesToUpload.length} file(s)`);
-      const artifactClient: ArtifactClient = create();
-      const uploadResponse = await artifactClient.uploadArtifact(uniqueArtifactName, filesToUpload,
-        path.dirname(parentPath), // Root directory for relative paths
-        { continueOnError: false } // Stop on error
-      );
+      const uploadResponse = await artifact.uploadArtifact(uniqueArtifactName, filesToUpload, path.dirname(parentPath));
 
-      this.logger.info(`Artifact ${uploadResponse.artifactName} uploaded successfully.`);
-      return uploadResponse.artifactName;
+      this.logger.info(`Artifact ${uploadResponse.id} uploaded successfully.`);
+      return uploadResponse.id ?? 0;
     } catch (error) {
       this.logger.error(`uploadArtifact: Action failed: ${error instanceof Error ? error.message : String(error)}`);
       throw error; // Re-throw to allow caller to handle

@@ -41,10 +41,6 @@ async function run () {
     logger.info('BEGIN run ...');
     logger.info('Current dir = ' + process.cwd());
 
-    const artifacts = await GitHubClient.getWorkflowRunArtifacts(context.runId);
-    for (const artifact of artifacts) {
-      logger.debug(`Artifact: ${artifact.name}, id=${artifact.id}`);
-    }
     const dir = config.workPath;
     logger.debug(`Runner workspace: ${dir}`);
     await GitHubClient.uploadArtifact(path.join(process.cwd(), 'test.txt'), "artifact1");

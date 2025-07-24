@@ -36,16 +36,16 @@ export class TestResultManager {
       directories.push(directory);
     }
     //TODO add junitResult.xml, mqmTests.xml and eventually other files (results_###.xml ?)
-    const artifactName = await GitHubClient.uploadArtifact(mbtPath, runResultsFilesMap.values().next().value!);
+    const artifactId = await GitHubClient.uploadArtifact(mbtPath, runResultsFilesMap.values().next().value!);
     //const artifactName = await GitHubClient.uploadArtifacts(mbtPath, directories);
-    const artifacts = await GitHubClient.getWorkflowRunArtifacts(buildId);
+/*    const artifacts = await GitHubClient.getWorkflowRunArtifacts(buildId);
     for (const artifact of artifacts) {
       logger.debug(`Artifact: ${artifact.name}, id=${artifact.id}`);
       if (artifact.name === artifactName) {
         return artifact.id;
       }
-    }
-    return 0;
+    }*/
+    return artifactId;
   }
 
   private static async collectRunResultsXmlFiles(mbtPath: string): Promise<Map<number, string>> {
