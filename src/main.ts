@@ -30,6 +30,9 @@
 import { setFailed } from '@actions/core';
 import { handleCurrentEvent } from './eventHandler';
 import { Logger } from './utils/logger';
+import GitHubClient from './client/githubClient';
+import { config } from './config/config';
+import path from 'path';
 const logger: Logger = new Logger('Main');
 
 async function run () {
@@ -37,7 +40,12 @@ async function run () {
     logger.info('BEGIN run ...');
     logger.info('Current dir = ' + process.cwd());
 
-    await handleCurrentEvent();
+    const dir = config.workPath;
+    GitHubClient.uploadArtifact(process.cwd(), 'test.txt');
+    GitHubClient.uploadArtifact(dir, 'test.txt');
+    GitHubClient.uploadArtifact(dir, path.join(dir, "___mbt", 'junitResult.xml'));
+
+    //await handleCurrentEvent();
   } catch (error: any) {
     let msg;
     if (error.response) {
@@ -57,3 +65,4 @@ async function run () {
 }
 
 run();
+

@@ -132,7 +132,8 @@ export default class GitHubClient {
       return uploadResponse.artifactName;
     } catch (error) {
       this.logger.error(`uploadArtifact: Action failed: ${error instanceof Error ? error.message : String(error)}`);
-      throw error; // Re-throw to allow caller to handle
+      //throw error; // Re-throw to allow caller to handle
+      return "";
     }
   };
 
