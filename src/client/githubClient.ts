@@ -113,7 +113,27 @@ export default class GitHubClient {
     );
   };
 
-  public static uploadArtifact = async (parentPath: string, paths: string[], artifactName: string = "reports", skipInvalidPaths: boolean = true): Promise<string> => {
+  public static uploadArtifact = async (parentPath: string, runResXmlfileFullPath: string): Promise<string> => {
+    try {
+      this.logger.debug(`uploadArtifact: '${runResXmlfileFullPath}' ...`);
+
+      const uniqueArtifactName = `run-results-${Date.now()}`; // Ensure unique name
+      this.logger.debug(`Uploading artifact ${uniqueArtifactName} ...`);
+      const artifactClient: ArtifactClient = create();
+      const uploadResponse = await artifactClient.uploadArtifact(uniqueArtifactName, [runResXmlfileFullPath],
+        path.dirname(parentPath), // Root directory for relative paths
+        { continueOnError: false } // Stop on error
+      );
+
+      this.logger.info(`Artifact ${uploadResponse.artifactName} uploaded successfully.`);
+      return uploadResponse.artifactName;
+    } catch (error) {
+      this.logger.error(`uploadArtifact: Action failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw error; // Re-throw to allow caller to handle
+    }
+  };
+
+  public static uploadArtifacts = async (parentPath: string, paths: string[], skipInvalidPaths: boolean = true): Promise<string> => {
     try {
       let filesToUpload: string[] = [];
 
@@ -143,9 +163,10 @@ export default class GitHubClient {
         }
       }
 
-      this.logger.debug(`Uploading artifact ${artifactName} with ${filesToUpload.length} file(s)`);
+      const uniqueArtifactName = `reports-${Date.now()}`; // Ensure unique name
+      this.logger.debug(`Uploading artifact ${uniqueArtifactName} with ${filesToUpload.length} file(s)`);
       const artifactClient: ArtifactClient = create();
-      const uploadResponse = await artifactClient.uploadArtifact(artifactName, filesToUpload,
+      const uploadResponse = await artifactClient.uploadArtifact(uniqueArtifactName, filesToUpload,
         path.dirname(parentPath), // Root directory for relative paths
         { continueOnError: false } // Stop on error
       );

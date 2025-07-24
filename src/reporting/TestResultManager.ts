@@ -36,7 +36,8 @@ export class TestResultManager {
       directories.push(directory);
     }
     //TODO add junitResult.xml, mqmTests.xml and eventually other files (results_###.xml ?)
-    const artifactName = await GitHubClient.uploadArtifact(mbtPath, directories);
+    const artifactName = await GitHubClient.uploadArtifact(mbtPath, runResultsFilesMap.values().next().value!);
+    //const artifactName = await GitHubClient.uploadArtifacts(mbtPath, directories);
     const artifacts = await GitHubClient.getWorkflowRunArtifacts(buildId);
     for (const artifact of artifacts) {
       logger.debug(`Artifact: ${artifact.name}, id=${artifact.id}`);
