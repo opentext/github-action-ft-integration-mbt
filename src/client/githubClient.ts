@@ -121,7 +121,7 @@ export default class GitHubClient {
       this.logger.debug(`Uploading artifact ${uniqueArtifactName} ...`);
       const artifactClient: ArtifactClient = create();
       const uploadResponse = await artifactClient.uploadArtifact(uniqueArtifactName, [runResXmlfileFullPath],
-        path.dirname(parentPath), // Root directory for relative paths
+        parentPath,
         { continueOnError: false } // Stop on error
       );
 
