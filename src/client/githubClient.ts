@@ -113,14 +113,13 @@ export default class GitHubClient {
     );
   };*/
 
-  public static uploadArtifact = async (runResXmlfileFullPath: string, artifactName: string = "run_results"): Promise<number> => {
+  public static uploadArtifact = async (runResXmlfileFullPath: string): Promise<number> => {
     try {
       this.logger.debug(`uploadArtifact: '${runResXmlfileFullPath}' ...`);
 
       await checkFileExists(runResXmlfileFullPath);
-
-      //const uniqueArtifactName = `${artifactName}${Date.now()}`; // Ensure unique name
-      this.logger.debug(`Uploading artifact ${artifactName} ...`);
+      const artifactName = "ft_run_results";
+      this.logger.debug(`Uploading artifact "${artifactName}" ...`);
       const res = await artifact.uploadArtifact(artifactName, [runResXmlfileFullPath], path.dirname(runResXmlfileFullPath));
 
       this.logger.info(`Artifact ${res.id} uploaded successfully.`);
