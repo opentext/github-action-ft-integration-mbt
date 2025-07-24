@@ -52926,8 +52926,8 @@ async function run() {
         logger.info('BEGIN run ...');
         logger.info('Current dir = ' + process.cwd());
         const dir = config_1.config.workPath;
-        await githubClient_1.default.uploadArtifact(process.cwd(), 'C:\\Plugins\\GitHub\\runner_ufto-tests\_work\\ufto-tests\\ufto-tests\\test.txt', "runresults1");
-        await githubClient_1.default.uploadArtifact(dir, 'C:\\Plugins\\GitHub\\runner_ufto-tests\_work\\ufto-tests\\test.txt', "runresults2");
+        await githubClient_1.default.uploadArtifact(process.cwd(), 'C:\\Plugins\\GitHub\\runner_ufto-tests\\_work\\ufto-tests\\ufto-tests\\test.txt', "runresults1");
+        await githubClient_1.default.uploadArtifact(dir, 'C:\\Plugins\\GitHub\\runner_ufto-tests\\_work\\ufto-tests\\test.txt', "runresults2");
         await githubClient_1.default.uploadArtifact(dir, path_1.default.join(dir, "___mbt", 'junitResult.xml'), "runresults3");
         //await handleCurrentEvent();
     }
