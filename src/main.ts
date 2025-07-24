@@ -33,6 +33,7 @@ import { Logger } from './utils/logger';
 import GitHubClient from './client/githubClient';
 import { config } from './config/config';
 import path from 'path';
+import { context } from '@actions/github';
 const logger: Logger = new Logger('Main');
 
 async function run () {
@@ -40,10 +41,14 @@ async function run () {
     logger.info('BEGIN run ...');
     logger.info('Current dir = ' + process.cwd());
 
+    const artifacts = await GitHubClient.getWorkflowRunArtifacts(context.runId);
+    for (const artifact of artifacts) {
+      logger.debug(`Artifact: ${artifact.name}, id=${artifact.id}`);
+    }
     const dir = config.workPath;
-    await GitHubClient.uploadArtifact(process.cwd(), 'C:\\Plugins\\GitHub\\runner_ufto-tests\\_work\\ufto-tests\\ufto-tests\\test.txt', "runresults1");
-    await GitHubClient.uploadArtifact(dir, 'C:\\Plugins\\GitHub\\runner_ufto-tests\\_work\\ufto-tests\\test.txt', "runresults2");
-    await GitHubClient.uploadArtifact(dir, path.join(dir, "___mbt", 'junitResult.xml'), "runresults3");
+    await GitHubClient.uploadArtifact(process.cwd(), 'C:\\Plugins\\GitHub\\runner_ufto-tests\\_work\\ufto-tests\\ufto-tests\\test.txt', "runresults10");
+    await GitHubClient.uploadArtifact(dir, 'C:\\Plugins\\GitHub\\runner_ufto-tests\\_work\\ufto-tests\\test.txt', "runresults20");
+    await GitHubClient.uploadArtifact(dir, path.join(dir, "___mbt", 'junitResult.xml'), "runresults30");
 
     //await handleCurrentEvent();
   } catch (error: any) {

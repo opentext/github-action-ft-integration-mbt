@@ -52920,15 +52920,20 @@ const logger_1 = __nccwpck_require__(7893);
 const githubClient_1 = __importDefault(__nccwpck_require__(1779));
 const config_1 = __nccwpck_require__(1122);
 const path_1 = __importDefault(__nccwpck_require__(6928));
+const github_1 = __nccwpck_require__(3228);
 const logger = new logger_1.Logger('Main');
 async function run() {
     try {
         logger.info('BEGIN run ...');
         logger.info('Current dir = ' + process.cwd());
+        const artifacts = await githubClient_1.default.getWorkflowRunArtifacts(github_1.context.runId);
+        for (const artifact of artifacts) {
+            logger.debug(`Artifact: ${artifact.name}, id=${artifact.id}`);
+        }
         const dir = config_1.config.workPath;
-        await githubClient_1.default.uploadArtifact(process.cwd(), 'C:\\Plugins\\GitHub\\runner_ufto-tests\\_work\\ufto-tests\\ufto-tests\\test.txt', "runresults1");
-        await githubClient_1.default.uploadArtifact(dir, 'C:\\Plugins\\GitHub\\runner_ufto-tests\\_work\\ufto-tests\\test.txt', "runresults2");
-        await githubClient_1.default.uploadArtifact(dir, path_1.default.join(dir, "___mbt", 'junitResult.xml'), "runresults3");
+        await githubClient_1.default.uploadArtifact(process.cwd(), 'C:\\Plugins\\GitHub\\runner_ufto-tests\\_work\\ufto-tests\\ufto-tests\\test.txt', "runresults10");
+        await githubClient_1.default.uploadArtifact(dir, 'C:\\Plugins\\GitHub\\runner_ufto-tests\\_work\\ufto-tests\\test.txt', "runresults20");
+        await githubClient_1.default.uploadArtifact(dir, path_1.default.join(dir, "___mbt", 'junitResult.xml'), "runresults30");
         //await handleCurrentEvent();
     }
     catch (error) {
