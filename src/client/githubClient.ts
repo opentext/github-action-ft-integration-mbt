@@ -39,6 +39,7 @@ import { Logger } from '../utils/logger';
 import FileContent from '../dto/github/FileContent';
 import * as core from '@actions/core';
 import { config } from '../config/config';
+import { checkFileExists } from '../utils/utils';
 
 
 const _owner_repo = { owner: config.owner, repo: config.repo };
@@ -117,7 +118,9 @@ export default class GitHubClient {
     try {
       this.logger.debug(`uploadArtifact: '${runResXmlfileFullPath}' ...`);
 
-      const uniqueArtifactName = `run-results-${Date.now()}`; // Ensure unique name
+      checkFileExists(runResXmlfileFullPath);
+
+      const uniqueArtifactName = `runresults${Date.now()}`; // Ensure unique name
       this.logger.debug(`Uploading artifact ${uniqueArtifactName} ...`);
       const artifactClient: ArtifactClient = create();
       const uploadResponse = await artifactClient.uploadArtifact(uniqueArtifactName, [runResXmlfileFullPath],
