@@ -113,7 +113,7 @@ export default class GitHubClient {
     );
   };*/
 
-  public static uploadArtifact = async (runResXmlfileFullPath: string): Promise<number> => {
+/*  public static uploadArtifact = async (runResXmlfileFullPath: string): Promise<number> => {
     try {
       this.logger.debug(`uploadArtifact: '${runResXmlfileFullPath}' ...`);
 
@@ -128,15 +128,14 @@ export default class GitHubClient {
       this.logger.error(`uploadArtifact: ${error instanceof Error ? error.message : String(error)}`);
       return 0;
     }
-  };
+  };*/
 
-  public static uploadArtifacts = async (parentPath: string, paths: string[], skipInvalidPaths: boolean = true): Promise<number> => {
+  public static uploadArtifact = async (parentPath: string, paths: string[], skipInvalidPaths: boolean = true): Promise<number> => {
     try {
       let filesToUpload: string[] = [];
+      this.logger.debug(`uploadArtifact: parentPath='${parentPath}', paths.length=${paths.length} ...`);
 
       for (const fileOrDirFullPath of paths) {
-        this.logger.debug(`uploadArtifact: reportDirPath='${fileOrDirFullPath}' ...`);
-        // Check if the path exists
         if (!fs.existsSync(fileOrDirFullPath)) {
           this.logger.error(`Path does not exist: ${fileOrDirFullPath}`);
           if (!skipInvalidPaths) {
@@ -148,8 +147,7 @@ export default class GitHubClient {
         const stats = fs.statSync(fileOrDirFullPath);
         if (stats.isFile()) {
           filesToUpload.push(fileOrDirFullPath);
-        } else if (stats.isDirectory()) {
-          // Recursively collect all files in the directory
+        } else if (stats.isDirectory()) { // Recursively collect all files in the directory
           filesToUpload = filesToUpload.concat(this.walkDir(fileOrDirFullPath));
         } else {
           this.logger.error(`Path is neither a file nor a directory: ${fileOrDirFullPath}`);
@@ -160,9 +158,9 @@ export default class GitHubClient {
         }
       }
 
-      const uniqueArtifactName = `reports-${Date.now()}`; // Ensure unique name
-      this.logger.debug(`Uploading artifact ${uniqueArtifactName} with ${filesToUpload.length} file(s)`);
-      const res = await artifact.uploadArtifact(uniqueArtifactName, filesToUpload, parentPath);
+      const artifactName = `run-results`;
+      this.logger.debug(`Uploading artifact ${artifactName} with ${filesToUpload.length} file(s)`);
+      const res = await artifact.uploadArtifact(artifactName, filesToUpload, parentPath);
 
       this.logger.info(`Artifact ${res.id} uploaded successfully.`);
       return res.id ?? 0;
