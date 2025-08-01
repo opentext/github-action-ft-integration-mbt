@@ -129,25 +129,7 @@ const getOrCreateCiJob = async (
   }
 };*/
 
-const checkIfCiIdStartsWithPrefix = (
-  ciJob: CiJob,
-  ciIdPrefix: string
-): boolean => {
-  if (!ciJob.ci_id || !ciJob.name) {
-    return false;
-  }
-  return !ciJob.ci_id.startsWith(ciIdPrefix);
-};
-
-const checkIfCiServerIdsMatch = (
-  oldCiServerId: string,
-  newCiServerId: string
-): boolean => {
-  return oldCiServerId !== newCiServerId;
-};
-
 export {
-//  getAllJobsByPipeline,
   getJobByCiId,
   getOrCreateCiJob
   //updateJobsCiIdIfNeeded,

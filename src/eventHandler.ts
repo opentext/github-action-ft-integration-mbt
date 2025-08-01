@@ -35,7 +35,7 @@ import { getEventType } from './service/ciEventsService';
 import { Logger } from './utils/logger';
 import { saveSyncedCommit, getSyncedCommit, getSyncedTimestamp } from './utils/utils';
 import { context } from '@actions/github';
-import { getOrCreateTestRunner, sendExecutorFinishEvent, sendExecutorStartEvent } from './service/executorService';
+import { getCreateOrUpdateTestRunner, sendExecutorFinishEvent, sendExecutorStartEvent } from './service/executorService';
 import Discovery from './discovery/Discovery';
 import { UftoParamDirection } from './dto/ft/UftoParamDirection';
 import { OctaneStatus } from './dto/ft/OctaneStatus';
@@ -128,7 +128,7 @@ export const handleCurrentEvent = async (): Promise<void> => {
             throw new Error(`Invalid or missing tests to run specified in the workflow`);
           }
           const exitCode = await handleExecutorEvent(defaultParams, wfis);
-          //TODO use exitCode
+          //TODO use exitCode ?
           break;
         } else {
           logger.debug(`Continue with discovery / sync ...`);
@@ -147,7 +147,6 @@ export const handleCurrentEvent = async (): Promise<void> => {
       }
       const discoveryRes = await discovery.startScanning(oldCommit);
       const tests = discoveryRes.getAllTests();
-      const scmResxFiles = discoveryRes.getScmResxFiles();
 
       if (logger.isDebugEnabled()) {
         console.log(`Tests: ${tests.length}`);
@@ -172,17 +171,6 @@ export const handleCurrentEvent = async (): Promise<void> => {
             }
           }
         }
-        scmResxFiles?.length && console.log(`Resource files: ${scmResxFiles.length}`, scmResxFiles);
-        for (const f of scmResxFiles) {
-          console.log(`Resource file: ${f.name}`);
-          console.log(`  oldName: ${f.oldName ?? ""}`);
-          console.log(`  relativePath: ${f.relativePath}`);
-          f.oldRelativePath ?? console.log(`  oldPath: ${f.oldRelativePath}`);
-          console.log(`  changeType: ${OctaneStatus.getName(f.octaneStatus)}`);
-          console.log(`  isMoved: ${f.isMoved ?? false}`);
-          f.changeSetSrc && console.log(`  changeSetSrc: ${f.changeSetSrc}`);
-          f.changeSetDst && console.log(`  changeSetDst: ${f.changeSetDst}`);
-        }
       }
 
       await doTestSync(discoveryRes, ymlFileName, branch!);
@@ -197,7 +185,7 @@ export const handleCurrentEvent = async (): Promise<void> => {
   }
 
   logger.info('END handleEvent ...');
-  // EOD of handleCurrentEvent function
+  // END of handleCurrentEvent function
 
   async function handleExecutorEvent(defaultParams: CiParam[], wfis: WorkflowInputs): Promise<ExitCode> {
     const workflowRunId = context.runId;
@@ -205,8 +193,8 @@ export const handleCurrentEvent = async (): Promise<void> => {
     const workDir = process.cwd();
     logger.debug(`handleExecutorEvent: ...`);
     const execParams = generateExecParams(defaultParams, wfis);
-    const { ciServerInstanceId, ciServerName, executorName, ciId, parentCiId } = getCiPredefinedVals(branch!, ymlFileName);
-    const ciServer = await OctaneClient.getCiServer(ciServerInstanceId, ciServerName);
+    const { ciServerInstanceId, executorName, ciId, parentCiId } = getCiPredefinedVals(branch!, ymlFileName);
+    const ciServer = await OctaneClient.getCiServer(ciServerInstanceId);
     if (!ciServer) {
       logger.error(`handleExecutorEvent: Could not find CI server with instanceId: ${ciServerInstanceId}`);
       return ExitCode.Aborted;
@@ -240,7 +228,6 @@ export const handleCurrentEvent = async (): Promise<void> => {
       const res = (exitCode === ExitCode.Passed ? Result.SUCCESS : (exitCode === ExitCode.Unstable ? Result.UNSTABLE : Result.FAILURE));
       await publishResultsToOctane(ciServerInstanceId, ciId, workflowRunId, resFullPath);
       await sendFinishEvent(res, true);
-      // TODO check TestResultServiceImpl.publishResultsToOctane
       logger.info(`handleExecutorEvent: Finished with exitCode=${exitCode}.`);
       return exitCode;
     } else {
@@ -262,12 +249,12 @@ const isMinSyncIntervalElapsed = async (minSyncInterval: number) => {
 }
 
 const doTestSync = async (discoveryRes: DiscoveryResult, ymlFileName: string, branch: string) => {
-  const { ciServerInstanceId, ciServerName, executorName, ciId } = getCiPredefinedVals(branch, ymlFileName);
+  const { ciServerInstanceId, executorName, ciId } = getCiPredefinedVals(branch, ymlFileName);
 
-  const ciServer = await OctaneClient.getOrCreateCiServer(ciServerInstanceId, ciServerName);
+  const ciServer = await OctaneClient.getOrCreateCiServer(ciServerInstanceId);
   const ciJob = await getOrCreateCiJob(executorName, ciId, ciServer, branch);
   logger.debug(`Ci Job id: ${ciJob.id}, name: ${ciJob.name}, ci_id: ${ciJob.ci_id}`);
-  const tr = await getOrCreateTestRunner(executorName, ciServer.id, ciJob);
+  const tr = await getCreateOrUpdateTestRunner(executorName, ciServer.id, ciJob);
   logger.debug(`ci_server.id: ${tr.ci_server.id}, ci_job.id: ${tr.ci_job.id}, scm_repository.id: ${tr.scm_repository.id}`);
   await mbtPrepDiscoveryRes4Sync(tr.id, tr.scm_repository.id, discoveryRes);
   await dispatchDiscoveryResults(tr.id, tr.scm_repository.id, discoveryRes);
@@ -275,12 +262,11 @@ const doTestSync = async (discoveryRes: DiscoveryResult, ymlFileName: string, br
 
 function getCiPredefinedVals(branch: string, ymlFileName: string) {
   const ymlFileNameWithoutExt = path.basename(ymlFileName, path.extname(ymlFileName));
-  const ciServerInstanceId = `GHA-MBT-${config.owner}`;
-  const ciServerName = `GHA-MBT-${config.owner}`;
+  const ciServerInstanceId = `GHA-MBT-${config.owner}-${config.repo}`;
   const executorName = `GHA-MBT-${config.owner}.${config.repo}.${branch}.${ymlFileNameWithoutExt}`;
   const parentCiId = `${config.owner}/${config.repo}/${ymlFileName}/executor`;
   const ciId = `${parentCiId}/${branch}`;
-  return { ciServerInstanceId, ciServerName, executorName, ciId, parentCiId };
+  return { ciServerInstanceId, executorName, ciId, parentCiId };
 }
 
 // Helper function to check if all required keys are present in ciParams

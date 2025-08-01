@@ -42,13 +42,17 @@ import { Logger } from '../utils/logger';
 
 const logger: Logger = new Logger('executorService');
 
-const getOrCreateTestRunner = async (name: string, ciServerId: number, ciJob: CiJob): Promise<CiExecutor> => {
-  logger.debug(`getOrCreateTestRunner: name=${name}, ciServerId=${ciServerId}, ciJob=${JSON.stringify(ciJob)} ...`);
+const getCreateOrUpdateTestRunner = async (name: string, ciServerId: number, ciJob: CiJob): Promise<CiExecutor> => {
+  logger.debug(`getCreateOrUpdateTestRunner: name=${name}, ciServerId=${ciServerId}, ciJob=${JSON.stringify(ciJob)} ...`);
   const subType = "uft_test_runner";
-  const entry = await OctaneClient.getExecutor(ciServerId, name, subType);
+  const exe = await OctaneClient.getExecutor(name, subType);
 
-  if (entry) {
-    return entry;
+  if (exe) {
+    if (exe.ci_server && exe.ci_job) {
+      return exe;
+    } else { //TODO should we check scm_repository_roots.url too?
+      return await OctaneClient.updateExecutor(exe.id, ciServerId, ciJob);
+    }
   }
   return await OctaneClient.createMbtTestRunner(name, ciServerId, ciJob);
 };
@@ -149,7 +153,7 @@ const getFrameworkId = (framework: string): string => {
 };
 
 export {
-  getOrCreateTestRunner,
+  getCreateOrUpdateTestRunner,
   buildExecutorName,
   sendExecutorStartEvent,
   sendExecutorFinishEvent

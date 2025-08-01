@@ -104,32 +104,6 @@ export default class GitHubClient {
     return (await this.octokit.rest.actions.getWorkflowRun({ ..._owner_repo, run_id: workflowRunId })).data;
   };
 
-/*  public static getWorkflowRunArtifacts = async (workflowRunId: number): Promise<Artifact[]> => {
-    this.logger.debug(`getWorkflowRunArtifacts: run_id='${workflowRunId}' ...`);
-
-    return await this.octokit.paginate(this.octokit.rest.actions.listWorkflowRunArtifacts,
-      { ..._owner_repo, run_id: workflowRunId, per_page: 100 },
-      response => response.data
-    );
-  };*/
-
-/*  public static uploadArtifact = async (runResXmlfileFullPath: string): Promise<number> => {
-    try {
-      this.logger.debug(`uploadArtifact: '${runResXmlfileFullPath}' ...`);
-
-      await checkFileExists(runResXmlfileFullPath);
-      const artifactName = "ft_run_results";
-      this.logger.debug(`Uploading artifact "${artifactName}" ...`);
-      const res = await artifact.uploadArtifact(artifactName, [runResXmlfileFullPath], path.dirname(runResXmlfileFullPath));
-
-      this.logger.info(`Artifact ${res.id} uploaded successfully.`);
-      return res.id ?? 0;
-    } catch (error) {
-      this.logger.error(`uploadArtifact: ${error instanceof Error ? error.message : String(error)}`);
-      return 0;
-    }
-  };*/
-
   public static uploadArtifact = async (parentPath: string, paths: string[], skipInvalidPaths: boolean = true): Promise<number> => {
     try {
       let filesToUpload: string[] = [];

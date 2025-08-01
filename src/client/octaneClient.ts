@@ -53,7 +53,6 @@ const { COLLECTION_NAME: AUTOMATED_TESTS, TEST_RUNNER } = EntityConstants.Automa
 const { REPOSITORY_PATH } = EntityConstants.MbtUnit;
 const SERVER_TYPE = 'server_type';
 const CI_SERVERS = 'ci_servers';
-const CI_SERVER = 'ci_server';
 const SCM_REPOSITORY = 'scm_repository';
 const TESTING_TOOL_TYPE = 'testing_tool_type';
 const INSTANCE_ID = 'instance_id';
@@ -101,16 +100,16 @@ export default class OctaneClient {
     await this.octane.executeCustomRequest(url, Octane.operationTypes.create, xml, { 'Content-Type': 'application/xml' });
   };
 
-  private static createCIServer = async (name: string, instance_id: string, url: string): Promise<CiServer> => {
-    const body: CiServerBody = { name, instance_id, server_type: this.GITHUB_ACTIONS, url };
+  private static createCIServer = async (instance_id: string, url: string): Promise<CiServer> => {
+    const body: CiServerBody = { name: instance_id, instance_id, server_type: this.GITHUB_ACTIONS, url };
     this.logger.debug(`createCIServer: ...`, body);
     const fldNames = ['id', 'name', 'instance_id', 'plugin_version', 'url', 'is_connected', 'server_type'];
     const res = await this.octane.create(CI_SERVERS, body).fields(...fldNames).execute();
     return res.data[0];
   };
 
-  public static getCiServer = async (instanceId: string, name: string): Promise<CiServer | null> => {
-    this.logger.debug(`getCiServer: instanceId=[${instanceId}], name=[${name}], url=[${config.repoUrl}] ...`);
+  public static getCiServer = async (instanceId: string): Promise<CiServer | null> => {
+    this.logger.debug(`getCiServer: instanceId=[${instanceId}], url=[${config.repoUrl}] ...`);
 
     const qryBase = Query.field(INSTANCE_ID).equal(escapeQueryVal(instanceId))
       .and(Query.field(SERVER_TYPE).equal(this.GITHUB_ACTIONS));
@@ -134,13 +133,13 @@ export default class OctaneClient {
     return ciServer;
   };
 
-  public static getOrCreateCiServer = async (instanceId: string, name: string): Promise<CiServer> => {
-    this.logger.debug(`getOrCreateCiServer: instanceId=[${instanceId}], name=[${name}], url=[${config.repoUrl}] ...`);
+  public static getOrCreateCiServer = async (instanceId: string): Promise<CiServer> => {
+    this.logger.debug(`getOrCreateCiServer: instanceId=[${instanceId}], url=[${config.repoUrl}] ...`);
 
-    let ciServer = await this.getCiServer(instanceId, name);
+    let ciServer = await this.getCiServer(instanceId);
     if (!ciServer) {
       const repoUrl = config.repoUrl.replace(/\.git$/, '');
-      ciServer = await this.createCIServer(name, instanceId, repoUrl);
+      ciServer = await this.createCIServer(instanceId, repoUrl);
       this.updatePluginVersion(instanceId);
       ciServer.plugin_version = this.PLUGIN_VERSION;
     }
@@ -148,10 +147,9 @@ export default class OctaneClient {
     return ciServer;
   };
 
-  public static getExecutor = async (ciServerId: number, name: string, subType: string): Promise<CiExecutor | null> => {
-    this.logger.debug(`getExecutor: ciServerId=${ciServerId}, name=${name} ...`);
-    const q = Query.field(CI_SERVER).equal(Query.field(ID).equal(ciServerId))
-      .and(Query.field(NAME).equal(escapeQueryVal(name)))
+  public static getExecutor = async (name: string, subType: string): Promise<CiExecutor | null> => {
+    this.logger.debug(`getExecutor: name=${name} ...`);
+    const q = Query.field(NAME).equal(escapeQueryVal(name))
       .and(Query.field(SUBTYPE).equal(subType))
       .build();
 
@@ -197,6 +195,24 @@ export default class OctaneClient {
     }
     this.logger.debug("Test Runner:", entry);
     return entry;
+  };
+
+  public static updateExecutor = async (id: number, ciServerId: number, ciJob: CiJob): Promise<CiExecutor> => {
+    const body = {
+      id: id,
+      ci_server: { id: ciServerId, type: "ci_server" },
+      ci_job: { id: ciJob.id, type: 'ci_job' }
+    };
+    this.logger.debug(`updateMbtTestRunner: PUT`);
+    this.logger.debug(JSON.stringify(body, null, 2));
+    const fldNames = ['id', 'name', 'subtype', 'framework', 'scm_repository', 'ci_job', 'ci_server'];
+    const res = await this.octane.update('executors', body).fields(...fldNames).execute();
+
+    if (!res) {
+      throw Error(`Could not update the executor with id=${id}.`);
+    }
+    this.logger.debug("Test Runner:", res);
+    return res;
   };
 
   public static getCiServerByInstanceId = async (instanceId: string): Promise<CiServer | null> => {

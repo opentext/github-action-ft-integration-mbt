@@ -39,7 +39,6 @@ import UnitBody, { UnitParamBody } from '../dto/octane/general/bodies/UnitBody';
 import { extractScmTestPath } from '../utils/utils';
 import Unit from '../dto/octane/general/Unit';
 import FolderBody from '../dto/octane/general/bodies/FolderBody';
-import Reference from '../dto/octane/general/Reference';
 const LIST_NODE = "list_node";
 const INPUT = "input";
 const OUTPUT = "output";
