@@ -54,7 +54,10 @@ export default class MbtDataPrepConverter {
     };
   }
 
-  private static escapeCsvVal(val: string): string {
+  private static escapeCsvVal(val: string | null | undefined): string {
+    if (val == null)
+      return "";
+
     // Remove the outer dbl-quotes
     if (val.startsWith('"') && val.endsWith('"')) {
       val = val.slice(1, -1);
