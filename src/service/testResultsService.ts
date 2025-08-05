@@ -39,7 +39,7 @@ const logger: Logger = new Logger('testResultsService');
 const sendTestResults = async (serverId: string, jobId: string, buildId: number, resFullPath: string) => {
   logger.info(`sendTestResults: [${resFullPath}] ...`);
   const buildInfo: BuildInfo = {serverId, jobId, buildId};
-  const parser = new JUnitParser(resFullPath); // TODO assets 
+  const parser = new JUnitParser(resFullPath);
   const junitRes = await parser.parseResult();
   const mqmTestsXmlFilePath = await TestResultManager.buildOctaneXmlFile(buildInfo, junitRes);
   const octaneXml = await fsExtra.readFile(mqmTestsXmlFilePath, 'utf-8');

@@ -4,7 +4,6 @@ import { create } from 'xmlbuilder';
 import { TestResult } from './TestResult';
 import { Logger } from '../utils/logger';
 import { BuildInfo } from './interfaces';
-import { config } from '../config/config';
 
 const logger = new Logger('MqmTestResultsBuilder');
 
@@ -38,8 +37,8 @@ export class MqmTestResultsBuilder {
       root.e('build', {
         server_id: this.buildInfo.serverId,
         job_id: this.buildInfo.jobId,
-        build_id: this.buildInfo.buildId,
-        artifact_id: this.buildInfo.artifactId
+        build_id: this.buildInfo.buildId/*,
+        artifact_id: this.buildInfo.artifactId*/
       });
 
       const testRuns = root.e('test_runs');

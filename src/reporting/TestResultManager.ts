@@ -20,28 +20,33 @@ export class TestResultManager {
     const mqmTestsFile = path.join(mbtPath, 'mqmTests.xml');
     const runResultsFilesMap = await this.collectRunResultsXmlFiles(mbtPath);
 
-    const runId2artifactIdMap = await this.buildArtifact(buildInfo.buildId, mbtPath, runResultsFilesMap);
-    const artifactId = await GitHubClient.uploadArtifact(mbtPath, [junitResXmlFile], `junitResult_xml`);
+    const runId2artifactIdMap = await this.buildArtifacts(buildInfo.buildId, mbtPath, runResultsFilesMap);
 
-    const builder = new MqmTestResultsBuilder(junitResult, { ...buildInfo, artifactId, runId2artifactIdMap }, mqmTestsFile, runResultsFilesMap);
+    const builder = new MqmTestResultsBuilder(junitResult, { ...buildInfo, runId2artifactIdMap }, mqmTestsFile, runResultsFilesMap);
     await builder.invoke();
-    await GitHubClient.uploadArtifact(mbtPath, [mqmTestsFile], `mqmTests_xml`);
+    await GitHubClient.uploadArtifact(mbtPath, [junitResXmlFile, mqmTestsFile], `junit_results`);
     logger.debug(`buildOctaneXmlFile: Finished writing mqmTests.xml`);
     return mqmTestsFile;
   }
 
   //TODO add junitResult.xml, mqmTests.xml and eventually other files (results_###.xml ?)
-  private static async buildArtifact(buildId: number, mbtPath: string, runResultsFilesMap: Map<number, string>): Promise<Map<number, number>> {
+  private static async buildArtifacts(buildId: number, mbtPath: string, runResultsFilesMap: Map<number, string>): Promise<Map<number, number>> {
     logger.debug(`buildArtifact: buildId=${buildId} ...`);
 
-    const runId2artifactIdMap = new Map<number, number>();
-    for (const [runId, filePath] of runResultsFilesMap.entries()) {
+    const uploadPromises = Array.from(runResultsFilesMap.entries()).map(async ([runId, filePath]) => {
       const dir = path.dirname(filePath);
       const artifactId = await GitHubClient.uploadArtifact(mbtPath, [dir], `run_results_${runId}`);
-      runId2artifactIdMap.set(runId, artifactId);
+      return { runId, artifactId };
+    });
+
+    const results = await Promise.all(uploadPromises);
+
+    const runIdToArtifactIdMap = new Map<number, number>();
+    for (const { runId, artifactId } of results) {
+      runIdToArtifactIdMap.set(runId, artifactId);
     }
 
-    return runId2artifactIdMap;
+    return runIdToArtifactIdMap;
   }
 
   private static async collectRunResultsXmlFiles(mbtPath: string): Promise<Map<number, string>> {
