@@ -1,5 +1,5 @@
 import { XMLElement } from 'xmlbuilder';
-import { XmlWritableTestResult, RunResultsSteps, RunResultsStep, UftResultStepParameter } from './interfaces';
+import { XmlWritableTestResult, RunResultsSteps, RunResultsStep, UftResultStepParameter, TestErr } from './interfaces';
 
 export class JUnitTestResult implements XmlWritableTestResult {
   public moduleName: string;
@@ -12,7 +12,7 @@ export class JUnitTestResult implements XmlWritableTestResult {
   public resultData: RunResultsSteps[];
   public result: string;
   public duration: number;
-  public testError: any | null;
+  public testError: TestErr | null;
   public runId: number | null;
   public externalAssets: string;
 

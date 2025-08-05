@@ -104,10 +104,10 @@ export default class GitHubClient {
     return (await this.octokit.rest.actions.getWorkflowRun({ ..._owner_repo, run_id: workflowRunId })).data;
   };
 
-  public static uploadArtifact = async (parentPath: string, paths: string[], skipInvalidPaths: boolean = true): Promise<number> => {
+  public static uploadArtifact = async (parentPath: string, paths: string[], artifactName: string, skipInvalidPaths: boolean = true): Promise<number> => {
     try {
       let filesToUpload: string[] = [];
-      this.logger.debug(`uploadArtifact: parentPath='${parentPath}', paths.length=${paths.length} ...`);
+      this.logger.debug(`uploadArtifact: parentPath='${parentPath}', paths.length=${paths.length}, artifactName='${artifactName}' ...`);
 
       for (const fileOrDirFullPath of paths) {
         if (!fs.existsSync(fileOrDirFullPath)) {
@@ -132,7 +132,6 @@ export default class GitHubClient {
         }
       }
 
-      const artifactName = `run-results`;
       this.logger.debug(`Uploading artifact ${artifactName} with ${filesToUpload.length} file(s)`);
       const res = await artifact.uploadArtifact(artifactName, filesToUpload, parentPath);
 

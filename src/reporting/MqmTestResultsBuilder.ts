@@ -9,20 +9,18 @@ import { config } from '../config/config';
 const logger = new Logger('MqmTestResultsBuilder');
 
 export class MqmTestResultsBuilder {
-  //private junitResFilePath: string;
   private junitResult: TestResult
   private buildInfo: BuildInfo;
-  private tmpMqmTestsFile: string;
+  private mqmTestsFile: string;
   private buildStarted: number;
   private runResultsFilesMap: Map<number, string>;
 
   constructor(
-    junitResult: TestResult, buildInfo: BuildInfo, tmpMqmTestsFile: string, runResultsFilesMap: Map<number, string>) {
-    //this.junitResFilePath = junitResFilePath;
+    junitResult: TestResult, buildInfo: BuildInfo, mqmTestsFile: string, runResultsFilesMap: Map<number, string>) {
     this.junitResult = junitResult;
     this.buildInfo = buildInfo;
     this.buildStarted = Date.now();
-    this.tmpMqmTestsFile = tmpMqmTestsFile;
+    this.mqmTestsFile = mqmTestsFile;
     this.runResultsFilesMap = runResultsFilesMap;
   }
 
@@ -30,14 +28,11 @@ export class MqmTestResultsBuilder {
     try {
       logger.debug(`invoke: Processing JUnit test results ...`);
 
-      const repoUrl = config.repoUrl.replace(/\.git$/, '');
-      const externalURL = `${repoUrl}/actions/runs/${this.buildInfo.buildId}/artifacts/${this.buildInfo.artifactId}`;
-
-      const iterator = new JUnitXmlIterator(externalURL, this.buildStarted, this.runResultsFilesMap);
+      const iterator = new JUnitXmlIterator(this.buildInfo, this.buildStarted, this.runResultsFilesMap);
       await iterator.processXmlResult(this.junitResult);
       const testResults = iterator.getTestResults();
 
-      await fs.ensureFile(this.tmpMqmTestsFile as string);
+      await fs.ensureFile(this.mqmTestsFile as string);
 
       const root = create('test_result');
       root.e('build', {
@@ -56,23 +51,23 @@ export class MqmTestResultsBuilder {
 
       // Use Promises for file stream operations
       await new Promise((resolve, reject) => {
-        const tempFileStream = fs.createWriteStream(this.tmpMqmTestsFile, { flags: 'a' });
+        const mqmFileStream = fs.createWriteStream(this.mqmTestsFile, { flags: 'a' });
 
-        tempFileStream.on('finish', () => {
+        mqmFileStream.on('finish', () => {
           logger.debug('File has been written successfully');
           resolve(true);
         });
 
-        tempFileStream.on('error', (err) => {
+        mqmFileStream.on('error', (err) => {
           logger.error('Error writing to file:', err);
           reject(err);
         });
 
-        tempFileStream.write(xmlString);
-        tempFileStream.end();
+        mqmFileStream.write(xmlString);
+        mqmFileStream.end();
       });
 
-      logger.debug(`invoke: Finished writing test results to ${this.tmpMqmTestsFile}`);
+      logger.debug(`invoke: Finished writing test results to ${this.mqmTestsFile}`);
 
     } catch (error) {
       logger.error('Error in invoke method:', error as Error);

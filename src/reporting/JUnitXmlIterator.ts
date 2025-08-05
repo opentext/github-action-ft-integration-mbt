@@ -1,32 +1,21 @@
-import { RunResultsSteps } from './interfaces';
+import { BuildInfo, RunResultsSteps, TestErr } from './interfaces';
 import { JUnitTestResult } from './JUnitTestResult';
 import { Logger } from '../utils/logger';
 import { TestResult } from './TestResult';
 import { CaseResult } from './CaseResult';
 import { getMBTData } from './utils';
+import { config } from '../config/config';
 
 const logger = new Logger('JUnitXmlIterator');
 export class JUnitXmlIterator {
-  private buildStarted: number;
-  private runResultsFilesMap: Map<number, string>;
+  private readonly buildStarted: number;
+  private readonly buildInfo: BuildInfo;
+  private readonly runResultsFilesMap: Map<number, string>;
   private testNameToJunitResultMap: Map<string, JUnitTestResult> = new Map();
-  private moduleName: string = '';
-  private packageName: string = '';
-  private className: string = '';
-  private testName: string = '';
-  private testDuration: number = 0;
-  private status: string = 'Passed';
-  private stackTraceStr: string = '';
-  private errorType: string = '';
-  private errorMsg: string = '';
-  private externalURL: string = '';
-  private description: string = '';
   private resultData: RunResultsSteps[] = [];
-  private runId: number | null = null;
-  private externalAssets: string = '';
 
-  constructor(externalURL: string, buildStarted: number, runResultsFilesMap: Map<number, string>) {
-    this.externalURL = externalURL;
+  constructor(buildInfo: BuildInfo, buildStarted: number, runResultsFilesMap: Map<number, string>) {
+    this.buildInfo = buildInfo;
     this.buildStarted = buildStarted;
     this.runResultsFilesMap = runResultsFilesMap;
   }
@@ -44,58 +33,62 @@ export class JUnitXmlIterator {
   }
 
   private async processTestCase(tc: CaseResult): Promise<void> {
-    this.moduleName = this.className = this.packageName = ""; //TODO double-check / test better
-    this.testName = (tc.testName || ''); //getLastFolderFromPath
-    this.testDuration = tc.duration || 0;
-    this.status = tc.skipped ? 'Skipped' : 'Passed';
+    const testName = (tc.testName || ''); //getLastFolderFromPath
+    const testDuration = tc.duration || 0;
+    let status = tc.skipped ? 'Skipped' : 'Passed';
+    let errorType = '';
+    let errorMsg = '';
+    let stackTraceStr = '';
     if (tc.errorStackTrace || tc.errorDetails) {
-      this.status = 'Failed';
-      this.stackTraceStr = tc.errorStackTrace;
-      this.errorMsg = tc.errorDetails;
+      status = 'Failed';
+      stackTraceStr = tc.errorStackTrace;
+      errorMsg = tc.errorDetails;
       let idx = tc.errorStackTrace.indexOf("at ");
       if (idx >= 0) {
-        this.errorType = tc.errorStackTrace.substring(0, idx);
+        errorType = tc.errorStackTrace.substring(0, idx);
       } else {
         idx = tc.errorDetails.indexOf(":");
         if (idx >= 0) {
-          this.errorType = tc.errorDetails.substring(0, idx);
+          errorType = tc.errorDetails.substring(0, idx);
         }
       }
     }
     const runId = tc.runId;
+    let externalURL = '';
     if (this.runResultsFilesMap.has(runId)) {
       const runResXmlFilePath = this.runResultsFilesMap.get(runId);
       this.resultData = await getMBTData(runResXmlFilePath!) || [];
+      const repoUrl = config.repoUrl.replace(/\.git$/, '');
+      if (this.buildInfo.runId2artifactIdMap?.has(runId)) {
+        externalURL = `${repoUrl}/actions/runs/${this.buildInfo.buildId}/artifacts/${this.buildInfo.runId2artifactIdMap.get(runId)}`;
+      }
     } else {
       logger.error(`processTestCase: Run results file not found for runId: ${runId}`);
     }
 
-    if (tc.stdout) {
-      this.description = this.extractValueFromStdout(tc.stdout, '__octane_description_start__', '__octane_description_end__', '');
-    }
+    const description = tc.stdout ?
+      this.extractValueFromStdout(tc.stdout, '__octane_description_start__', '__octane_description_end__', '') :
+      '';
 
-    const testError = this.stackTraceStr || this.errorMsg
-      ? { stackTraceStr: this.stackTraceStr, errorType: this.errorType, errorMsg: this.errorMsg }
-      : null;
+    const testError: TestErr | null = stackTraceStr || errorMsg ? { errorType, errorMsg, stackTraceStr } : null;
 
-    this.runId = tc.runId;
     const testResult = new JUnitTestResult(
-      this.moduleName,
-      this.packageName,
-      this.className,
-      this.testName,
-      this.status,
-      this.testDuration,
+      "", //moduleName
+      "", //packageName
+      "", //className
+      testName,
+      status,
+      testDuration,
       this.buildStarted,
       testError,
-      this.externalURL,
-      this.description,
+      externalURL,
+      description,
       this.resultData,
-      this.runId,
-      this.externalAssets
+      runId,
+      '' //externalAssets
     );
 
-    this.testNameToJunitResultMap.set(this.testName, testResult);
+    this.testNameToJunitResultMap.set(testName, testResult);
   }
 
   private extractValueFromStdout(stdoutValue: string, startString: string, endString: string, defaultValue: string): string {

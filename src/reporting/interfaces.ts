@@ -160,4 +160,11 @@ export interface BuildInfo {
   jobId: string;
   buildId: number;
   artifactId?: number;
+  runId2artifactIdMap?: Map<number, number>;
+}
+
+export interface TestErr {
+  errorType: string;
+  errorMsg: string;
+  stackTraceStr: string;
 }
