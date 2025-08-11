@@ -52,7 +52,7 @@ export class JUnitTestResult implements XmlWritableTestResult {
       package: this.packageName,
       class: this.className,
       name: this.testName,
-      duration: `${Math.round(this.duration)}`,
+      duration: `${Math.round(this.duration * 1000)}`,
       status: this.result,
       started: this.started.toString(),
       external_assets: this.externalAssets,
