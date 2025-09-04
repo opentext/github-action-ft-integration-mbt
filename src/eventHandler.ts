@@ -239,7 +239,7 @@ export const handleCurrentEvent = async (): Promise<void> => {
       const res = (exitCode === ExitCode.Passed ? Result.SUCCESS : (exitCode === ExitCode.Unstable ? Result.UNSTABLE : Result.FAILURE));
       await publishResultsToOctane(ciServerInstanceId, ciId, workflowRunId, resFullPath);
       await sendFinishEvent(res, true);
-      await GitHubClient.uploadArtifact(config.runnerWorkspacePath, [mbtPropsFullPath, propsFullPath, mtbxFullPath], `props_mtbx`);
+      await GitHubClient.uploadArtifact(config.runnerWorkspacePath, [mbtPropsFullPath, propsFullPath, mtbxFullPath, resFullPath], `temp_files`);
       logger.info(`handleExecutorEvent: Finished with exitCode=${exitCode}.`);
       return exitCode;
     } else {
