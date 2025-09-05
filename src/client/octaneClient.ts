@@ -137,7 +137,10 @@ export default class OctaneClient {
     this.logger.debug(`getOrCreateCiServer: instanceId=[${instanceId}], url=[${config.repoUrl}] ...`);
 
     let ciServer = await this.getCiServer(instanceId);
-    if (!ciServer) {
+    if (ciServer) {
+      // call it without await - do not block the flow
+      this.updatePluginVersionIfNeeded(instanceId, ciServer.plugin_version);
+    } else {
       const repoUrl = config.repoUrl.replace(/\.git$/, '');
       ciServer = await this.createCIServer(instanceId, repoUrl);
       this.updatePluginVersion(instanceId);
@@ -562,7 +565,7 @@ export default class OctaneClient {
     return result;
   }
 
-  public static updatePluginVersionIfNeeded = async (instanceId: String, version: string): Promise<void> => {
+  private static updatePluginVersionIfNeeded = async (instanceId: String, version: string): Promise<void> => {
     this.logger.info(`Current CI Server version: '${version}'`);
     if (!version || isVersionGreater(this.PLUGIN_VERSION, version)) {
       this.logger.info(`Updating CI Server version to: '${this.PLUGIN_VERSION}'`);
