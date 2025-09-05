@@ -38,6 +38,7 @@ import AutomatedTest from '../dto/ft/AutomatedTest';
 import { DOMParser, Document } from '@xmldom/xmldom';
 import { TspParseError } from './TspParseError';
 import * as CFB from 'cfb';
+import ActionsEventType from '../dto/github/ActionsEventType';
 
 // File to store the string (hidden file to avoid cluttering the repo)
 const SYNCED_COMMIT_SHA = path.join(process.cwd(), '.synced-commit-sha');
@@ -438,4 +439,29 @@ const getLastFolderFromPath = (dirPath: string): string => {
   }
 }
 
-export { getHeadCommitSha, isBlank, isTestMainFile, getTestType, getParentFolderFullPath, saveSyncedCommit, getSyncedCommit, getSyncedTimestamp, extractWorkflowFileName, isVersionGreater, sleep, escapeQueryVal, getTestPathPrefix, extractScmTestPath, extractScmPathFromActionPath, extractActionLogicalNameFromActionPath, extractActionNameFromActionPath, calcByExpr, getSafeDomParser, extractXmlFromTspOrMtrFile, getGuiTestDocument, getApiTestDocument, getFileIfExist, getTimestamp, escapePropVal, checkReadWriteAccess, checkFileExists, escapeXML, parseTimeToFloat, getLastFolderFromPath };
+const getEventType = (event: string | null | undefined): ActionsEventType => {
+  switch (event) {
+    case 'workflow_dispatch':
+      return ActionsEventType.WORKFLOW_DISPATCH;
+    case 'push':
+      return ActionsEventType.PUSH;
+    case 'requested':
+      return ActionsEventType.WORKFLOW_QUEUED;
+    case 'in_progress':
+      return ActionsEventType.WORKFLOW_STARTED;
+    case 'completed':
+      return ActionsEventType.WORKFLOW_FINISHED;
+    case 'opened':
+      return ActionsEventType.PULL_REQUEST_OPENED;
+    case 'closed':
+      return ActionsEventType.PULL_REQUEST_CLOSED;
+    case 'reopened':
+      return ActionsEventType.PULL_REQUEST_REOPENED;
+    case 'edited':
+      return ActionsEventType.PULL_REQUEST_EDITED;
+    default:
+      return ActionsEventType.UNKNOWN_EVENT;
+  }
+};
+
+export { getHeadCommitSha, isBlank, isTestMainFile, getTestType, getParentFolderFullPath, saveSyncedCommit, getSyncedCommit, getSyncedTimestamp, extractWorkflowFileName, isVersionGreater, sleep, escapeQueryVal, getTestPathPrefix, extractScmTestPath, extractScmPathFromActionPath, extractActionLogicalNameFromActionPath, extractActionNameFromActionPath, calcByExpr, getSafeDomParser, extractXmlFromTspOrMtrFile, getGuiTestDocument, getApiTestDocument, getFileIfExist, getTimestamp, escapePropVal, checkReadWriteAccess, checkFileExists, escapeXML, parseTimeToFloat, getLastFolderFromPath, getEventType };
