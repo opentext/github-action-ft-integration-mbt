@@ -147,7 +147,7 @@ export const handleCurrentEvent = async (): Promise<void> => {
           logger.warn(msg);
           setOutput('should_run', 'false');
           setOutput('reason', msg);
-          notice('Precheck: nothing to do; downstream job will be skipped.');
+          notice(msg, { title: 'Run Skipped' });
           return;
         }
       }
