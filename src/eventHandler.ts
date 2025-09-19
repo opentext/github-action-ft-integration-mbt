@@ -286,7 +286,7 @@ const isMinSyncIntervalElapsed = async (minSyncInterval: number) => {
   logger.debug(`Current Time: ${dtNow.toISOString() }`);
   const timeDiffMinutes = (dtNow.getTime() - lastSyncedTimestamp) / (60000);
   logger.debug(`Time since last sync: ${timeDiffMinutes.toFixed(2)} minutes.`);
-  return timeDiffMinutes >= minSyncInterval;
+  return Number(timeDiffMinutes) >= minSyncInterval;
 }
 
 const doTestSync = async (discoveryRes: DiscoveryResult, ymlFileName: string, branch: string) => {
