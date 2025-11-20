@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2025 Open Text.
+ * Copyright 2025 Open Text.
  *
  * The only warranties for products and services of Open Text and
  * its affiliates and licensors (“Open Text”) are as may be set forth
@@ -114,7 +114,6 @@ export const handleCurrentEvent = async (): Promise<void> => {
 
   const workDir = process.cwd(); //.env.GITHUB_WORKSPACE || '.';
   logger.info(`Working directory: ${workDir}`);
-  logger.info(`Testing tool type: ${config.testingTool.toUpperCase()}`);
   const discovery = new Discovery(workDir);
   switch (eventType) {
     case ActionsEventType.WORKFLOW_DISPATCH:

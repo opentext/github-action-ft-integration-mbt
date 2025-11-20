@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2025 Open Text.
+ * Copyright 2025 Open Text.
  *
  * The only warranties for products and services of Open Text and
  * its affiliates and licensors (“Open Text”) are as may be set forth
@@ -39,7 +39,6 @@ interface Config {
   digitalLabUrl?: string; // TODO find a better prefix
   digitalLabExecToken?: string; // TODO find a better prefix
   githubToken: string;
-  testingTool: string;
   minSyncInterval: number;
   owner: string;
   repo: string;
@@ -67,7 +66,6 @@ try {
     digitalLabUrl: getInput('digitalLabUrl').trim(),
     digitalLabExecToken: getInput('digitalLabExecToken').trim(),
     githubToken: getInput('githubToken').trim(),
-    testingTool: "mbt",//getInput('testingToolType').toLowerCase().trim(),
     minSyncInterval: Number.parseInt(getInput('minSyncInterval').trim()),
     owner: owner,
     repo: repo,

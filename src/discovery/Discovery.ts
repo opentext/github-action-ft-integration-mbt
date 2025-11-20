@@ -1,10 +1,38 @@
+/*
+ * Copyright 2025 Open Text.
+ *
+ * The only warranties for products and services of Open Text and
+ * its affiliates and licensors (“Open Text”) are as may be set forth
+ * in the express warranty statements accompanying such products and services.
+ * Nothing herein should be construed as constituting an additional warranty.
+ * Open Text shall not be liable for technical or editorial errors or
+ * omissions contained herein. The information contained herein is subject
+ * to change without notice.
+ *
+ * Except as specifically indicated otherwise, this document contains
+ * confidential information and a valid license is required for possession,
+ * use or copying. If this work is provided to the U.S. Government,
+ * consistent with FAR 12.211 and 12.212, Commercial Computer Software,
+ * Computer Software Documentation, and Technical Data for Commercial Items are
+ * licensed to the U.S. Government under vendor's standard commercial license.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { Logger } from '../utils/logger';
 import { exec } from '@actions/exec';
 import * as core from '@actions/core';
 import * as fs from 'fs';
 import * as path from 'path';
 import { UftoTestType } from '../dto/ft/UftoTestType';
-import ToolType from '../dto/ft/ToolType';
 import AutomatedTest from '../dto/ft/AutomatedTest';
 import ScmResourceFile from '../dto/ft/ScmResourceFile';
 import { OctaneStatus } from '../dto/ft/OctaneStatus';
@@ -18,7 +46,6 @@ import DiscoveryResult from './DiscoveryResult';
 import { TspParseError } from '../utils/TspParseError';
 
 const logger: Logger = new Logger('Discovery');
-const _toolType = config.testingTool === "mbt" ? ToolType.MBT : ToolType.UFT;
 
 const UFT_COMPONENT_NODE_NAME = "Component";
 const UFT_DEPENDENCY_NODE_NAME = "Dependency";
@@ -146,7 +173,7 @@ export default class Discovery {
       await this.doFullDiscovery();
     } else {
       if (oldCommit) {
-        const affectedFiles = await ScmChangesWrapper.getScmChanges(_toolType, this._workDir, oldCommit, newCommit);
+        const affectedFiles = await ScmChangesWrapper.getScmChanges(this._workDir, oldCommit, newCommit);
         await this.doSyncDiscovery(affectedFiles);
         isFullSync = false;
       } else {
@@ -182,9 +209,7 @@ export default class Discovery {
       const affectedFileFullPath = path.join(this._workDir, affectedFileWrapper.newPath);
       if (isTestMainFile(affectedFileFullPath)) {
         await this.handleTestChanges(affectedFileWrapper, affectedFileFullPath);
-      } else if (_toolType === ToolType.UFT && this.isDataTableFile(affectedFileWrapper.newPath)) {
-        await this.handleDataTableChanges(affectedFileWrapper, affectedFileFullPath);
-      } else if (_toolType === ToolType.MBT && this.isUftoActionFile(affectedFileWrapper.newPath)) {
+      } else if (this.isUftoActionFile(affectedFileWrapper.newPath)) {
         await this.handleActionChanges(affectedFileWrapper, affectedFileFullPath);
       }
     }
@@ -279,7 +304,7 @@ export default class Discovery {
           this._scmResxFiles.push(scmResxFile);
         }
       }
-    } else if (!(_toolType === ToolType.MBT && testType === UftoTestType.API)) {
+    } else if (testType !== UftoTestType.API) {
       const automTest = await this.createAutomatedTestEx(subDirFullPath, testType);
       this._tests.push(automTest);
     }
@@ -315,7 +340,7 @@ export default class Discovery {
     test.description = descr ?? "";
 
     // discover actions only for mbt toolType and gui tests
-    if (_toolType == ToolType.MBT && testType === UftoTestType.GUI) {
+    if (testType === UftoTestType.GUI) {
       const actionPathPrefix = this.getActionPathPrefix(test, false);
       const actions = await this.parseActionsAndParameters(doc, actionPathPrefix, test.name, subDirFullPath);
       test.actions = actions;    

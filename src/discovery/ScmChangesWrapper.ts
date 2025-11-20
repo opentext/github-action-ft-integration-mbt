@@ -1,10 +1,37 @@
+/*
+ * Copyright 2025 Open Text.
+ *
+ * The only warranties for products and services of Open Text and
+ * its affiliates and licensors (“Open Text”) are as may be set forth
+ * in the express warranty statements accompanying such products and services.
+ * Nothing herein should be construed as constituting an additional warranty.
+ * Open Text shall not be liable for technical or editorial errors or
+ * omissions contained herein. The information contained herein is subject
+ * to change without notice.
+ *
+ * Except as specifically indicated otherwise, this document contains
+ * confidential information and a valid license is required for possession,
+ * use or copying. If this work is provided to the U.S. Government,
+ * consistent with FAR 12.211 and 12.212, Commercial Computer Software,
+ * Computer Software Documentation, and Technical Data for Commercial Items are
+ * licensed to the U.S. Government under vendor's standard commercial license.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import * as core from '@actions/core';
 import * as git from 'isomorphic-git';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as Diff from 'diff';
 import { Logger } from '../utils/logger';
-import ToolType from '../dto/ft/ToolType';
 
 const logger: Logger = new Logger('ScmChangesWrapper');
 
@@ -25,16 +52,16 @@ interface DiffEntry {
 }
 
 export default class ScmChangesWrapper {
-  public static async getScmChanges(toolType: ToolType, dir: string, oldCommit: string, newCommit: string): Promise<ScmAffectedFileWrapper[]> {
-    return wrapScmChanges(toolType, dir, oldCommit, newCommit);
+  public static async getScmChanges(dir: string, oldCommit: string, newCommit: string): Promise<ScmAffectedFileWrapper[]> {
+    return wrapScmChanges(dir, oldCommit, newCommit);
   }
 }
-async function wrapScmChanges(toolType: ToolType, dir: string, oldCommit: string, newCommit: string): Promise<ScmAffectedFileWrapper[]> {
+async function wrapScmChanges(dir: string, oldCommit: string, newCommit: string): Promise<ScmAffectedFileWrapper[]> {
   const affectedFiles: ScmAffectedFileWrapper[] = [];
   
   try {
     // Get diff between old and new commits
-    const diffs = await getDiffEntries(toolType, dir, oldCommit, newCommit); // Compare to latest commit
+    const diffs = await getDiffEntries(dir, oldCommit, newCommit); // Compare to latest commit
 
     // Rename detection settings
     const renameThreshold = 0.5; // 50% similarity for rename detection
@@ -95,12 +122,12 @@ async function wrapScmChanges(toolType: ToolType, dir: string, oldCommit: string
 }
 
 // Get diff entries between two commits
-async function getDiffEntries(toolType: ToolType, dir: string, oldCommit: string, newCommit: string): Promise<DiffEntry[]> {
+async function getDiffEntries(dir: string, oldCommit: string, newCommit: string): Promise<DiffEntry[]> {
   const gitdir = path.join(dir, '.git');
   logger.debug('Starting getDiffEntries with:', { dir, gitdir, oldCommit, newCommit });
 
-  const allowedExtensions = toolType === ToolType.UFT ? /\.(xls|xlsx|tsp|st)$/i : /\.(tsp|st)$/i;
-  const allowedFilenames = toolType === ToolType.UFT ? /^(ACTIONS\.XML)$/i : /^(ACTIONS\.XML|Resource\.MTR)$/i;
+  const allowedExtensions = /\.(tsp|st)$/i;
+  const allowedFilenames = /^(ACTIONS\.XML|Resource\.MTR)$/i;
 
   const results = await git.walk({
     fs,
