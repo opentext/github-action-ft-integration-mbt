@@ -58,6 +58,7 @@ import { CiCausesType, Result } from './dto/octane/events/CiTypes';
 import { publishResultsToOctane } from './service/testResultsService';
 import * as fs from 'fs';
 import FTL from './ft/FTL';
+import { PLUGIN_VERSION, SEP } from './utils/constants';
 
 const logger: Logger = new Logger('eventHandler');
 const requiredKeys: WorkflowInputsKeys[] = ['executionId', 'suiteId', 'suiteRunId', 'testsToRun'];
@@ -308,7 +309,7 @@ function getCiPredefinedVals(branch: string, ymlFileName: string) {
   const ymlFileNameWithoutExt = path.basename(ymlFileName, path.extname(ymlFileName));
   const ciServerInstanceId = `GHA-MBT-${config.owner}-${config.repo}`;
   const executorName = `GHA-MBT-${config.owner}.${config.repo}.${branch}.${ymlFileNameWithoutExt}`;
-  const parentCiId = `${config.owner}/${config.repo}/${ymlFileName}/executor`;
+  const parentCiId = `${PLUGIN_VERSION}${SEP}${config.owner}${SEP}${config.repo}${SEP}${ymlFileName}${SEP}executor`;
   const ciId = `${parentCiId}/${branch}`;
   return { ciServerInstanceId, executorName, ciId, parentCiId };
 }
