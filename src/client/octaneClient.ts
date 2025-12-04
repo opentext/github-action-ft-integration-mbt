@@ -123,7 +123,7 @@ export default class OctaneClient {
       .and(Query.field(SERVER_TYPE).equal(this.GITHUB_ACTIONS));
 
     const ciServerQuery = qryBase.and(Query.field('url').equal(escapeQueryVal(config.repoUrl))).build();
-    const fldNames = ['instance_id', 'plugin_version', 'url', 'is_connected'];
+    const fldNames = ['instance_id', 'url', 'is_connected'];
     let res = await this.octane.get(CI_SERVERS).fields(...fldNames).query(ciServerQuery).limit(1).execute();
     let ciServer = null;
     if (res?.total_count && res.data?.length) {
@@ -145,13 +145,14 @@ export default class OctaneClient {
     this.logger.debug(`getOrCreateCiServer: instanceId=[${instanceId}], url=[${config.repoUrl}] ...`);
 
     let ciServer = await this.getCiServer(instanceId);
-    if (ciServer) {
-      await this.updatePluginVersionIfNeeded(instanceId, ciServer.plugin_version);
-    } else {
+    if (!ciServer) {
       const repoUrl = config.repoUrl.replace(/\.git$/, '');
       ciServer = await this.createCIServer(instanceId, repoUrl);
-      await this.updatePluginVersionIfNeeded(instanceId, PLUGIN_VERSION);
+      if (!ciServer) {
+        throw new Error(`Could not create or find CI Server for instanceId=${instanceId}.`);
+      }
     }
+    await this.updatePluginVersionIfNeeded(instanceId);
     this.logger.debug("CI Server:", ciServer);
     return ciServer;
   };
@@ -244,6 +245,7 @@ export default class OctaneClient {
       Octane.operationTypes.get
     );
 
+    this.logger.debug(`getOctaneVersion response = ${response.octaneVersion}`);
     return response.octaneVersion;
   };
 
@@ -571,17 +573,16 @@ export default class OctaneClient {
     );
   }
 
-  private static updatePluginVersionIfNeeded = async (instanceId: String, version: string): Promise<void> => {
-    this.logger.info(`Current CI Server version: '${version}'`);
+  private static updatePluginVersionIfNeeded = async (instanceId: String): Promise<void> => {
+    this.logger.debug(`updatePluginVersionIfNeeded: instanceId='${instanceId}'`);
     const octaneVersion = await this.getCachedOctaneVersion();
+    this.logger.debug(`Octane version: '${octaneVersion}'`);
     if (!isVersionGreater(octaneVersion, THRESHOLD_OCTANE_VERSION)) {
-      if (!version || isVersionGreater(PLUGIN_VERSION, version)) {
-        this.logger.info(`Updating CI Server version to: '${PLUGIN_VERSION}'`);
-        try {
-          await this.updatePluginVersion(instanceId);
-        } catch (err) {
-          this.logger.error(`updatePluginVersionIfNeeded: Failed to update plugin version: ${(err as Error).message}`);
-        }
+      this.logger.debug(`Updating CI Server version to: '${PLUGIN_VERSION}'`);
+      try {
+        await this.updatePluginVersion(instanceId);
+      } catch (err) {
+        this.logger.error(`updatePluginVersionIfNeeded: Failed to update plugin version: ${(err as Error).message}`);
       }
     }
   }
