@@ -10,7 +10,7 @@ This is a custom GitHub Action which facilitates communication between GitHub an
 - [2. Table of Contents](#2-table-of-contents)
 - [3. Requirements](#3-requirements)
 - [4. Workflow Configuration](#4-workflow-configuration)
-  - [4.1 Example Workflow Configuration](#41-example-workflow-configuration)
+  - [4.1 Full YML Example](#41-full-yml-example)
   - [4.2 Workflow Parameters](#42-workflow-parameters)
   - [4.3 Running the Workflow](#43-running-the-workflow)
   - [4.4 Debugging](#44-debugging)
@@ -39,7 +39,9 @@ This is a custom GitHub Action which facilitates communication between GitHub an
 ```yaml
 on:
   workflow_dispatch:
-	# more details in the next NOTE
+    inputs: 
+      # more details in the next NOTE
+      ...
   push:
     branches: main  # or other branches
 ```
@@ -101,7 +103,7 @@ jobs:
           logLevel: 2
 ```
 
-### 4.1. Example Workflow Configuration
+### 4.1. Full YML Example
 
 Example of complete integration workflow configuration file:
 
