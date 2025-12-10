@@ -40,8 +40,8 @@ This is a custom GitHub Action which facilitates communication between GitHub an
 on:
   workflow_dispatch:
     inputs: 
-      # more details in the next NOTE
-      ...
+	  # more details in the next NOTE
+	  ...
   push:
     branches: main  # or other branches
 ```
@@ -238,43 +238,56 @@ Run the desired workflow(s) from the **Actions** tab. This will create a new `CI
      - The **CI Server** and **Test Runner** entities will be automatically created in the product
 	 - The `Test Discovery` and `Synchronization` mechanisms will be triggered, so that all FT tests' `Actions` from current repo will be collected and injected as `Units` in the product.
 
-     - Example of **Credential** entity created at step [5.3 Configure the Credential](#53-configure-the-credential-into-the-product):
+- Example of **Credential** entity created at step [5.3 Configure the Credential](#53-configure-the-credential-into-the-product):
+
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/20a406a5-7587-47be-a5a2-62d8c9b630ee" alt="Credential" title="Credential" width="500" /></td></tr></table>
 
-     - Make sure a `Release` entity exists, otherwise create it (required to Run a **Test Suite**):
+- Make sure a `Release` entity exists, otherwise create it (required to Run a **Test Suite**):
+
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/d7baddce-58e3-4460-9e91-28989488475c" alt="Release" title="Release" width="500" /></td></tr></table>
 
-     - Make sure the **CI Server** is using the appropriate the `Credential` entity:
+- Make sure the **CI Server** is using the appropriate the `Credential` entity:
+
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/720ae3e8-3df6-41ed-8e30-e1ee73a21af5" alt="CI Server" title="CI Server" width="500" /></td></tr></table>
 
-     - Select the **Test Runner** and click `Sync with CI`:
+- Select the **Test Runner** and click `Sync with CI`:
+
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/9cad0353-fef8-4a00-b63a-9f032faa8c03" alt="Test Runner" title="Test Runner" width="500" /></td></tr></table>
 
-     - Optionally, review the **Test Runner** details:
+- Optionally, review the **Test Runner** details:
+
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/258a1333-f01d-4049-bb0d-34e1a4ccf258" alt="Test Runner" title="Test Runner" width="500" /></td></tr></table>
 
 3. **Create Models and MBT Tests:**
 
    - In the product, navigate to the **Model-Based Testing** module, create a new **Model** entity, add the desired **Units** and link them
    - Example of **Model** entity:
+
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/4d98e82c-9e8c-44b0-9b45-c1aff9d2af84" alt="Model" title="Model" width="500" /></td></tr></table>
 
    - To generate the **MBT Test** entities, open the `Paths` tab, select the desired items, then click `Generate Test`:
+
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/6dd441b9-5921-4433-b7d2-fbfb8e7faf4c" alt="Generate MBT Test" title="Generate MBT Test" width="500" /></td></tr></table>
 
    - After generating the **MBT Test**, the column `Covered by test` should be populated like this:
+
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/5c95fc84-7943-444e-8828-f4633ed903fe" alt="MBT Test" title="MBT Test" width="500" /></td></tr></table>
 
 4. **Create a Test Suite:**
 
    - Open the **Execution** or **Quality** module and go to `Tests` tab:
+
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/bfd317c8-0601-4f3d-b978-0cbae7d29121" alt="Tests" title="Tests" width="500" /></td></tr></table>
+
    
    - Create a **Test Suite** entity if you don't have one, then assign the relevant **MBT Test** entries to it.
+
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/9ba9802f-85ac-47eb-a911-ba9850b6c5ec" alt="Test Suite" title="Test Suite" width="500" /></td></tr></table>
 
    - Make sure the `Run Mode` is set to `Automatic`, and update **Test Suite** like this:
+
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/064a650b-89a9-47fa-8bdb-9dda7ebbf57b" alt="Test Suite" title="Test Suite" width="500" /></td></tr></table>
+
    
 5. Run the **MBT Tests** from the Product:
    - In the product, select or open the test suite and click `Run`, respectively `Run Suite`.
