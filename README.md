@@ -296,7 +296,7 @@ Run the desired workflow(s) from the **Actions** tab. This will create a new `CI
 
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/9ba9802f-85ac-47eb-a911-ba9850b6c5ec" alt="Test Suite" title="Test Suite" width="500" /></td></tr></table>
 
-- Make sure the `Run Mode` is set to `Automatic`, and update **Test Suite** like this:
+- Make sure the `Run Mode` is set to `Automatically`, and update **Test Suite** like this:
 
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/064a650b-89a9-47fa-8bdb-9dda7ebbf57b" alt="Test Suite" title="Test Suite" width="500" /></td></tr></table>
 
