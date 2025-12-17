@@ -18,7 +18,12 @@ This is a custom GitHub Action which facilitates communication between GitHub an
   - [5.1 Creating a GitHub App](#51-creating-a-github-app)
   - [5.2 Installing a GitHub App](#52-installing-a-github-app-to-specific-repositories)
   - [5.3 Configure the Credential](#53-configure-the-credential-into-the-product)
-- [6. Running MBT Tests](#6-running-automated-tests-from-the-product)
+- [6. Running MBT Tests](#6-running-mbt-tests)
+  - [6.1. GitHub self-hosted runner](#61-gitHub-self-hosted-runner)
+  - [6.2. Run the Workflow for the first time](#62-run-the-workflow-for-the-first-time)
+  - [6.3. Create Models and MBT Tests](#63-create-models-and-mbt-tests)
+  - [6.4. Create a Test Suite](#64-create-a-test-suite)
+  - [6.5. Run the MBT Tests from the Product](#65-run-the-mbt-tests-from-the-product)
 - [7. Limitations](#7-limitations)
 
 ## 3. Requirements
@@ -40,14 +45,12 @@ This is a custom GitHub Action which facilitates communication between GitHub an
 on:
   workflow_dispatch:
     inputs: 
-	  # more details in the next NOTE
+	  # more details in the next step
 	  ...
   push:
     branches: main  # or other branches
 ```
-> [!NOTE]
-> When the user will run a TestSuite, the OpenText SDP/SDM product will send a workflow_dispatch event to the GitHub workflow, with a payload containing 4 parameters. 
-These parameters must be captured using 4 inputs, like these:
+- Under `inputs` section, 4 input parameters must be added (see next example).
 
 ```yaml
 on:
@@ -70,6 +73,9 @@ on:
         required: true
         default: '0'
 ```
+> [!NOTE]
+> When the user will run a TestSuite from product, the product will automatically send a workflow_dispatch event to the GitHub workflow, with a payload containing the 4 parameters and values. 
+> Even if the user manully runs the workflow from GitHub Actions, the default value of these 4 parameters must not be changed by user.
 
 - If the product is configured on HTTPS with a self-signed certificate, configure node to allow requests to the server.
 
@@ -159,13 +165,14 @@ jobs:
 
 ### 4.2 Workflow Parameters
 
-Ensure the workflow includes these parameters:
-- `testsToRun` (*string*)
-- `suiteId` (*number*)
-- `suiteRunId` (*number*)
-- `executionId` (*number*)
-
-For numeric parameters, set default to `0`.
+Ensure the workflow includes the 4 required parameters:
+- `testsToRun` (default: '...')
+- `suiteId` (default: '0')
+- `suiteRunId` (default: '0')
+- `executionId` (default: '0')
+> [!NOTE]
+> When the user will run a TestSuite from product, the product will automatically send a workflow_dispatch event to the GitHub workflow, with a payload containing 4 parameters and values. 
+> Even if the user manully runs the workflow from GitHub Actions, the default value of these 4 parameters must not be changed by user.
 
 ### 4.3 Running the Workflow
 
@@ -194,8 +201,8 @@ Run the desired workflow(s) from the **Actions** tab. This will create a new `CI
 5. In the **Homepage URL** field, enter the URL of the Opentext Software Delivery Platform.
 6. In the **Webhook** section, uncheck the **Active** option. No webhook is needed.
 7. In the **Permissions** section, grant the following repository permissions:
-  - Actions: Read and write
-  - Content: Read-only
+  - `Actions`: Read and write
+  - `Content`: Read-only
 8. Click on the **Create GitHub App** button at the bottom of the page. Leave any other fields unchanged.
 
 ### 5.2. Installing a GitHub App to specific repositories
@@ -213,30 +220,33 @@ Run the desired workflow(s) from the **Actions** tab. This will create a new `CI
 1. On GitHub, go to your organization (or account, if the repository containing the workflows is owned by an account) settings.
 2. Go to **Developer Settings -> GitHub Apps** and select the GitHub App you installed by clicking on its name.
 3. On the current page, note the value of the **Client ID**.
-4. In the **Private keys** section, click on **Generate a private key**. A file containing the private key will be downloaded to your device.
+4. In the **Private keys** section, click on **Generate a private key** button. A file containing the `Private Key` will be downloaded to your device (usually this is a `.pem` file).
+	**Note:** `Private Key`should not be confused with `Client secret` (which is not required / used).
 5. Go to the OpenText Software Delivery Platform.
 6. Navigate to **Settings -> Spaces** (select the desired workspace containing the CI servers) **-> Credentials**.
 7. Create a new credential.
-8. Enter a name of your choice. In the **User Name** field, enter the **Client ID** from the GitHub App, and in the **Password** field, enter the private key generated for this GitHub App.
+8. Enter a name of your choice. In the **User Name** field, enter the **Client ID** from the GitHub App, and in the **Password** field, enter the `Private Key` (the full content from `.pem` file) generated for this GitHub App.
 9. Click on the `Add` button to create the credential.
 10. In workspace settings, go to **DevOps -> CI Servers**.
 11. For the desired CI server (it has the name of the organization on GitHub), double-click on the cell in the **Credential** column and select the newly created credential. If the **Credential** column is not visible, click on the **Choose Columns** button (near the **Filter** button) and make the column visible.
 
-## 6. Running MBT Tests from the product
+## 6. Running MBT Tests
 
-1. **Configure Workflow Parameters:**
-   - Ensure the parameters required for automated tests are properly set up in the YML workflow as described earlier.
-   - The workflow must include the following parameters:
-     - `testsToRun` (type: *string*)
-     - `suiteId` (type: *number*)
-     - `suiteRunId` (type: *number*)
-     - `executionId` (type: *number*)  
-   - For numerical parameters, it is recommended to set a default value of `0`.
+### 6.1. GitHub self-hosted runner
+- After completing the configuration, make sure the desired GitHub self-hosted runner is active, from GitHub **Settings -> Actions -> Runners**
+- To set up a GitHub self-hosted runner, follow the instructions provided in GitHub's documentation:
+  1. Visit the Adding self-hosted runners guide: https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/add-runners
+  2. Understand the prerequisites and select the machine you will use for your self-hosted runner.
+  3. Follow the steps to add a self-hosted runner at the repository, organization, or enterprise level.
+- If you'd like to learn more about self-hosted runners, their configuration, and management, see the following resources:
+    - Managing self-hosted runners: https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners
+    - About self-hosted runners: https://docs.github.com/en/actions/concepts/runners/self-hosted-runners
 
-2. **Run the Workflow:**
-   - After completing the configuration, run your workflow. 
-     - The **CI Server** and **Test Runner** entities will be automatically created in the product
-	 - The `Test Discovery` and `Synchronization` mechanisms will be triggered, so that all FT tests' `Actions` from current repo will be collected and injected as `Units` in the product.
+### 6.2. Run the Workflow for the first time
+- After completing the configuration, run your workflow once, manually, from GitHub **Actions** tab.
+  - The **CI Server** and **Test Runner** entities will be automatically created in the product
+  - The `Test Discovery` and `Synchronization` mechanisms will be triggered, so that all FT tests' `Actions` from current repo will be collected and injected as `Units` in the product.
+    - You can manually run the Workflow anytime, or it will be automatically triggered on `push` events.
 
 - Example of **Credential** entity created at step [5.3 Configure the Credential](#53-configure-the-credential-into-the-product):
 
@@ -258,40 +268,37 @@ Run the desired workflow(s) from the **Actions** tab. This will create a new `CI
 
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/258a1333-f01d-4049-bb0d-34e1a4ccf258" alt="Test Runner" title="Test Runner" width="500" /></td></tr></table>
 
-3. **Create Models and MBT Tests:**
+### 6.3. Create Models and MBT Tests
 
-   - In the product, navigate to the **Model-Based Testing** module, create a new **Model** entity, add the desired **Units** and link them
-   - Example of **Model** entity:
+- In the product, navigate to the **Model-Based Testing** module, create a new **Model** entity, add the desired **Units** and link them
+- Example of **Model** entity:
 
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/4d98e82c-9e8c-44b0-9b45-c1aff9d2af84" alt="Model" title="Model" width="500" /></td></tr></table>
 
-   - To generate the **MBT Test** entities, open the `Paths` tab, select the desired items, then click `Generate Test`:
+- To generate the **MBT Test** entities, open the `Paths` tab, select the desired items, then click `Generate Test`:
 
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/6dd441b9-5921-4433-b7d2-fbfb8e7faf4c" alt="Generate MBT Test" title="Generate MBT Test" width="500" /></td></tr></table>
 
-   - After generating the **MBT Test**, the column `Covered by test` should be populated like this:
+- After generating the **MBT Test**, the column `Covered by test` should be populated like this:
 
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/5c95fc84-7943-444e-8828-f4633ed903fe" alt="MBT Test" title="MBT Test" width="500" /></td></tr></table>
 
-4. **Create a Test Suite:**
+### 6.4. Create a Test Suite
 
-   - Open the **Execution** or **Quality** module and go to `Tests` tab:
+- Open the **Execution** or **Quality** module and go to `Tests` tab:
 
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/bfd317c8-0601-4f3d-b978-0cbae7d29121" alt="Tests" title="Tests" width="500" /></td></tr></table>
 
-   
-   - Create a **Test Suite** entity if you don't have one, then assign the relevant **MBT Test** entries to it.
+- Create a **Test Suite** entity if you don't have one, then assign the relevant **MBT Test** entries to it.
 
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/9ba9802f-85ac-47eb-a911-ba9850b6c5ec" alt="Test Suite" title="Test Suite" width="500" /></td></tr></table>
 
-   - Make sure the `Run Mode` is set to `Automatic`, and update **Test Suite** like this:
+- Make sure the `Run Mode` is set to `Automatic`, and update **Test Suite** like this:
 
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/064a650b-89a9-47fa-8bdb-9dda7ebbf57b" alt="Test Suite" title="Test Suite" width="500" /></td></tr></table>
 
-   
-5. Run the **MBT Tests** from the Product:
-   - In the product, select or open the test suite and click `Run`, respectively `Run Suite`.
+### 6.5. Run the MBT Tests from the Product
+- In the product, select or open the test suite and click `Run Suite`.
 
 ## 7. Limitations
-
 - One self-hosted GitHub runner to execute the integration workflow.

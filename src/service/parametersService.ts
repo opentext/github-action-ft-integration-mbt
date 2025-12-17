@@ -94,23 +94,10 @@ const parseYamlToCiParameters = (yamlContent: string): CiParam[] => {
   }
 
   for (const [name, details] of Object.entries(inputs)) {
-    const inputDetails = details as {
-      //description: string;
-      default: string;
-      //options: string[];
-      //type: string;
-    };
-    const ciParameter: CiParam = {
-      name: name,
-      //description: inputDetails.description,
-      defaultValue: inputDetails.default,
-      //choices: inputDetails.options,
-      //type: 'string'
-    };
+    const inputDetails = details as { default: string; };
+    const ciParameter: CiParam = { name: name, defaultValue: inputDetails.default };
     ciParameters.push(ciParameter);
-    logger.debug(
-      `Found parameter in configuration file with ${JSON.stringify(ciParameter)}.`
-    );
+    logger.debug(`Found parameter in configuration file with ${JSON.stringify(ciParameter)}.`);
   }
 
   return ciParameters;
