@@ -37,7 +37,7 @@ This is a custom GitHub Action which facilitates communication between GitHub an
 > [!NOTE]
 > These steps should be done inside your GitHub repository which contains the Functional Testing (formerly UFT One) tests.
 
-- Create a new workflow (.yml file).
+- Create a new workflow from GitHub **Actions** tab (resulting in a new `.yml` file inside of `<your_repo>/.github/workflows/` subfolder).
 - Add `workflow_dispatch` event trigger to allow manual workflow run
 - Add `push` event trigger to allow automatic workflow execution on every content change.
 
