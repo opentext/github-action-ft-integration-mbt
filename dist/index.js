@@ -154116,13 +154116,7 @@ const parseYamlToCiParameters = (yamlContent) => {
     }
     for (const [name, details] of Object.entries(inputs)) {
         const inputDetails = details;
-        const ciParameter = {
-            name: name,
-            //description: inputDetails.description,
-            defaultValue: inputDetails.default,
-            //choices: inputDetails.options,
-            //type: 'string'
-        };
+        const ciParameter = { name: name, defaultValue: inputDetails.default };
         ciParameters.push(ciParameter);
         logger.debug(`Found parameter in configuration file with ${JSON.stringify(ciParameter)}.`);
     }
