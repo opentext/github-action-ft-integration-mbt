@@ -233,6 +233,7 @@ Run the desired workflow(s) from the **Actions** tab. This will create a new `CI
 ## 6. Running MBT Tests
 
 ### 6.1. GitHub self-hosted runner
+
 - After completing the configuration, make sure the desired GitHub self-hosted runner is active, from GitHub **Settings -> Actions -> Runners**
 - To set up a GitHub self-hosted runner, follow the instructions provided in GitHub's documentation:
   1. Visit the Adding self-hosted runners guide: https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/add-runners
@@ -243,6 +244,7 @@ Run the desired workflow(s) from the **Actions** tab. This will create a new `CI
     - About self-hosted runners: https://docs.github.com/en/actions/concepts/runners/self-hosted-runners
 
 ### 6.2. Run the Workflow for the first time
+
 - After completing the configuration, run your workflow once, manually, from GitHub **Actions** tab.
   - The **CI Server** and **Test Runner** entities will be automatically created in the product
   - The `Test Discovery` and `Synchronization` mechanisms will be triggered, so that all FT tests' `Actions` from current repo will be collected and injected as `Units` in the product.
@@ -299,7 +301,11 @@ Run the desired workflow(s) from the **Actions** tab. This will create a new `CI
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/064a650b-89a9-47fa-8bdb-9dda7ebbf57b" alt="Test Suite" title="Test Suite" width="500" /></td></tr></table>
 
 ### 6.5. Run the MBT Tests from the Product
+
 - In the product, select or open the test suite and click `Run Suite`.
 
+<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/e80451df-8379-476b-92ac-f7d4b17e1e2a" alt="Test Suite" title="Test Suite" width="500" /></td></tr></table>
+
 ## 7. Limitations
+
 - One self-hosted GitHub runner to execute the integration workflow.
