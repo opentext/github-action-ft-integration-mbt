@@ -45,8 +45,8 @@ This is a custom GitHub Action which facilitates communication between GitHub an
 on:
   workflow_dispatch:
     inputs: 
-	  # more details in the next step
-	  ...
+      # more details in the next step
+      ...
   push:
     branches: main  # or other branches
 ```
@@ -221,14 +221,14 @@ Run the desired workflow(s) from the **Actions** tab. This will create a new `CI
 2. Go to **Developer Settings -> GitHub Apps** and select the GitHub App you installed by clicking on its name.
 3. On the current page, note the value of the **Client ID**.
 4. In the **Private keys** section, click on **Generate a private key** button. A file containing the `Private Key` will be downloaded to your device (usually this is a `.pem` file).
-	**Note:** `Private Key`should not be confused with `Client secret` (which is not required / used).
+   **Note:** `Private Key`should not be confused with `Client secret` (which is not required / used).
 5. Go to the OpenText Software Delivery Platform.
 6. Navigate to **Settings -> Spaces** (select the desired workspace containing the CI servers) **-> Credentials**.
 7. Create a new credential.
 8. Enter a name of your choice. In the **User Name** field, enter the **Client ID** from the GitHub App, and in the **Password** field, enter the `Private Key` (the full content from `.pem` file) generated for this GitHub App.
 9. Click on the `Add` button to create the credential.
 10. In workspace settings, go to **DevOps -> CI Servers**.
-11. For the desired CI server (it has the name of the organization on GitHub), double-click on the cell in the **Credential** column and select the newly created credential. If the **Credential** column is not visible, click on the **Choose Columns** button (near the **Filter** button) and make the column visible.
+11. For the desired **CI Server** (it has the name of the organization on GitHub), double-click on the cell in the **Credential** column and select the newly created credential. If the **Credential** column is not visible, click on the **Choose Columns** button (near the **Filter** button) and make the column visible.
 
 ## 6. Running MBT Tests
 
@@ -246,8 +246,8 @@ Run the desired workflow(s) from the **Actions** tab. This will create a new `CI
 - After completing the configuration, run your workflow once, manually, from GitHub **Actions** tab.
   - The **CI Server** and **Test Runner** entities will be automatically created in the product
   - The `Test Discovery` and `Synchronization` mechanisms will be triggered, so that all FT tests' `Actions` from current repo will be collected and injected as `Units` in the product.
-- You can manually run the Workflow again anytime, or it will be automatically triggered on `push` events.
-  - The `Test Discovery` and `Synchronization` mechanisms will be triggered again, only if the `minSyncInterval` minutes has elapsed since last sync.
+- You can manually rerun the Workflow anytime, or it will be automatically triggered by `push` events.
+  - Then, the `Test Discovery` and `Synchronization` mechanisms will be triggered again (if the `minSyncInterval` minutes has elapsed since the last sync).
 
 - Example of **Credential** entity created at step [5.3 Configure the Credential](#53-configure-the-credential-into-the-product):
 
