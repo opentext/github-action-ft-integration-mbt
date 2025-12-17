@@ -246,7 +246,8 @@ Run the desired workflow(s) from the **Actions** tab. This will create a new `CI
 - After completing the configuration, run your workflow once, manually, from GitHub **Actions** tab.
   - The **CI Server** and **Test Runner** entities will be automatically created in the product
   - The `Test Discovery` and `Synchronization` mechanisms will be triggered, so that all FT tests' `Actions` from current repo will be collected and injected as `Units` in the product.
-    - You can manually run the Workflow anytime, or it will be automatically triggered on `push` events.
+- You can manually run the Workflow again anytime, or it will be automatically triggered on `push` events.
+  - The `Test Discovery` and `Synchronization` mechanisms will be triggered again, only if the `minSyncInterval` minutes has elapsed since last sync.
 
 - Example of **Credential** entity created at step [5.3 Configure the Credential](#53-configure-the-credential-into-the-product):
 
