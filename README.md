@@ -11,13 +11,14 @@ The action will enable your GitHub repository to trigger MBT test runs and synch
 - [2. Table of Contents](#2-table-of-contents)
 - [3. Requirements](#3-requirements)
 - [4. Workflow Configuration](#4-workflow-configuration)
-  - [4.1 Full YML Example](#41-full-yml-example)
-  - [4.2 Workflow Parameters](#42-workflow-parameters)
-  - [4.3 Debugging](#43-debugging)
+  - [4.1. GitHub Workflow creation](#41-github-workflow-creation)
+  - [4.2. Full YML Example](#41-full-yml-example)
+  - [4.3. Workflow Parameters](#42-workflow-parameters)
+  - [4.4. Debugging](#43-debugging)
 - [5. Credentials Configuration](#5-credentials-configuration)
-  - [5.1 Creating a GitHub App](#51-creating-a-github-app)
-  - [5.2 Installing a GitHub App](#52-installing-a-github-app)
-  - [5.3 Configure the Credentials in the product](#53-configure-the-credentials-in-the-product)
+  - [5.1. Creating a GitHub App](#51-creating-a-github-app)
+  - [5.2. Installing a GitHub App](#52-installing-a-github-app)
+  - [5.3. Configure the Credentials in the product](#53-configure-the-credentials-in-the-product)
 - [6. Running MBT Tests](#6-running-mbt-tests)
   - [6.1. GitHub self-hosted runner](#61-gitHub-self-hosted-runner)
   - [6.2. Run the Workflow for the first time](#62-run-the-workflow-for-the-first-time)
@@ -34,6 +35,9 @@ The action will enable your GitHub repository to trigger MBT test runs and synch
 - API access to the product with **CI/CD Integration** or **DevOps Admin** roles.
 
 ## 4. Workflow Configuration
+
+### 4.1. GitHub Workflow creation
+
 > [!NOTE]
 > These steps should be done inside your GitHub repository which contains the OpenText Functional Testing (formerly UFT One) tests.
 
@@ -109,6 +113,8 @@ jobs:
           minSyncInterval: 2
           logLevel: 5
 ```
+For more details about the parameters of `opentext/github-action-ft-integration-mbt`, please check this page:
+https://github.com/MicroFocus/github-action-ft-integration-mbt/blob/main/action.yml
 
 ### 4.2. Full YML Example
 
@@ -164,7 +170,7 @@ jobs:
 
 - Run the desired workflow(s) from **Actions** Tab. This will create a new `CI Server` and `Test Runner` inside the product, reflecting the status of the executed workflow.
 
-### 4.3 Workflow Parameters
+### 4.3. Workflow Parameters
 
 Ensure the workflow includes the 4 required parameters:
 - `testsToRun` (default: '...')
@@ -172,7 +178,7 @@ Ensure the workflow includes the 4 required parameters:
 - `suiteRunId` (default: '0')
 - `executionId` (default: '0')
 > [!NOTE]
-> When the user will run a TestSuite from product, the product will automatically send a workflow_dispatch event to the GitHub workflow, with a payload containing 4 parameters and values. 
+> When the user will run a TestSuite from product, the product will automatically send a `workflow_dispatch` event to the GitHub workflow, with a payload containing 4 parameters and values. 
 > Even if the user manully runs the workflow from GitHub Actions, the default value of these 4 parameters must not be changed by user.
 
 ### 4.4. Debugging
@@ -181,7 +187,7 @@ Ensure the workflow includes the 4 required parameters:
 - These are the available values for this parameter:
   - `1` - *trace* level
   - `2` - *debug* level
-  - `3` - *info* level
+  - `3` - *info* level (default)
   - `4` - *warning* level
   - `5` - *error* level
 
@@ -220,7 +226,7 @@ This requires configuring GitHub App credentials and adding them to the applicat
 3. On the current page, note the value of the **Client ID**.
 4. In the **Private keys** section, click the **Generate a private key** button. A file containing the `Private Key` will be downloaded to your device (usually this is a `.pem` file).
    **Note:** `Private Key`should not be confused with `Client secret` (which is not required / used).
-5. Go to the OpenText Software Delivery Platform.
+5. Go to the OpenText Core Software Delivery Platform.
 6. Navigate to **Settings -> Spaces** (select the desired workspace containing the CI servers) **-> Credentials**.
 7. Create a new credential.
 8. Enter a name of your choice. In the **User Name** field, enter the **Client ID** from the GitHub App, and in the **Password** field, enter the `Private Key` (the full content from `.pem` file) generated for this GitHub App.

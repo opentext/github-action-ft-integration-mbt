@@ -1,5 +1,5 @@
-name: 'GitHub Action FT Integration'
-description: 'Sends CI/CD data from GitHub Action to OpenText SDP / SDM.'
+name: 'GitHub Action FT Integration MBT'
+description: 'Enable your GitHub repository to trigger MBT test runs and synchronize results with OpenText SDP/SDM.'
 inputs:
   octaneUrl:
     description: 'Url of OpenText SDP / SDM instance'
@@ -17,11 +17,11 @@ inputs:
     description: 'OpenText SDP / SDM API Access Client Secret'
     required: true
   digitalLabUrl:
-    description: 'OpenText Functional testing Lab Server URL, format: http(s)://{hostname-or-ip}[:{port}]'
+    description: 'OpenText Functional Testing Lab Server URL, format: http(s)://{hostname-or-ip}[:{port}]'
     required: false
     default: ""
   digitalLabExecToken:
-    description: 'OpenText Functional testing Lab Exec Token'
+    description: 'OpenText Functional Testing Lab Exec Token'
     required: false
     default: ""
   gitHubToken:
