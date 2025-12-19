@@ -2,7 +2,8 @@
 
 In the following documentation, the **OpenText Core Software Delivery Platform** and **OpenText Software Delivery Management** will collectively be referred to as 'the product'.
 
-This is a custom GitHub Action which facilitates communication between GitHub and the product (formerly known as ALM Octane/ValueEdge) regarding CI/CD. The action will monitor an automation workflow and will reflect it into the product.
+This is a custom GitHub Action which facilitates communication between GitHub and the product (formerly known as ALM Octane/ValueEdge) regarding CI/CD. 
+The action will enable your GitHub repository to trigger MBT test runs and synchronize results with OpenText SDP/SDM.
 
 ## 2. Table of Contents
 
@@ -10,14 +11,13 @@ This is a custom GitHub Action which facilitates communication between GitHub an
 - [2. Table of Contents](#2-table-of-contents)
 - [3. Requirements](#3-requirements)
 - [4. Workflow Configuration](#4-workflow-configuration)
-  - [4.1 Introduction](#41-introduction)
-  - [4.2 Full YML Example](#42-full-yml-example)
-  - [4.3 Workflow Parameters](#43-workflow-parameters)
-  - [4.4 Debugging](#44-debugging)
-- [5. Credential Configuration](#5-credential-configuration-into-the-product)
+  - [4.1 Full YML Example](#41-full-yml-example)
+  - [4.2 Workflow Parameters](#42-workflow-parameters)
+  - [4.3 Debugging](#43-debugging)
+- [5. Credentials Configuration](#5-credentials-configuration)
   - [5.1 Creating a GitHub App](#51-creating-a-github-app)
-  - [5.2 Installing a GitHub App](#52-installing-a-github-app-to-specific-repositories)
-  - [5.3 Configure the Credential](#53-configure-the-credential-into-the-product)
+  - [5.2 Installing a GitHub App](#52-installing-a-github-app)
+  - [5.3 Configure the Credentials in the product](#53-configure-the-credentials-in-the-product)
 - [6. Running MBT Tests](#6-running-mbt-tests)
   - [6.1. GitHub self-hosted runner](#61-gitHub-self-hosted-runner)
   - [6.2. Run the Workflow for the first time](#62-run-the-workflow-for-the-first-time)
@@ -35,13 +35,12 @@ This is a custom GitHub Action which facilitates communication between GitHub an
 
 ## 4. Workflow Configuration
 > [!NOTE]
-> These steps should be done inside your GitHub repository which contains the Functional Testing (formerly UFT One) tests.
+> These steps should be done inside your GitHub repository which contains the OpenText Functional Testing (formerly UFT One) tests.
 
-### 4.1. Introduction
-
+This section explains how to configure a GitHub Actions workflow that integrates OpenText Functional Testing with Model-Based Testing (MBT). 
 - Create a new workflow from GitHub **Actions** tab (resulting in a new `.yml` file inside of `<your_repo>/.github/workflows/` subfolder).
 - Add `workflow_dispatch` event trigger to allow manual workflow run
-- Add `push` event trigger to allow automatic workflow execution on every content change.
+- Add `push` event trigger to allow automatic workflow run on every content change.
 
 ```yaml
 on:
@@ -76,7 +75,7 @@ on:
         default: '0'
 ```
 > [!NOTE]
-> When the user will run a TestSuite from product, the product will automatically send a workflow_dispatch event to the GitHub workflow, with a payload containing the 4 parameters and values. 
+> When the user will run a TestSuite from product, the product will automatically send a `workflow_dispatch` event to the GitHub workflow, with a payload containing the 4 parameters and values. 
 > Even if the user manully runs the workflow from GitHub Actions, the default value of these 4 parameters must not be changed by user.
 
 - If the product is configured on HTTPS with a self-signed certificate, configure node to allow requests to the server.
@@ -186,9 +185,10 @@ Ensure the workflow includes the 4 required parameters:
   - `4` - *warning* level
   - `5` - *error* level
 
-## 5. Credential Configuration into the product
+## 5. Credentials Configuration
 
-- To use certain features, the product needs to send requests to GitHub. This requires configuring a GitHub App credential and adding it to the application.
+To use certain features, the product needs to send requests to GitHub. 
+This requires configuring GitHub App credentials and adding them to the application.
 
 ### 5.1. Creating a GitHub App
 
@@ -203,22 +203,22 @@ Ensure the workflow includes the 4 required parameters:
   - `Content`: Read-only
 8. Click on the **Create GitHub App** button at the bottom of the page. Leave any other fields unchanged.
 
-### 5.2. Installing a GitHub App to specific repositories
+### 5.2. Installing a GitHub App
 
 1. On GitHub, go to your organization (or account, if the repository containing the workflows is owned by an account) settings.
 2. Go to **Developer settings -> GitHub App**.
 3. Select the credential you created in the previous step by clicking on its name.
 4. In the left-side menu, go to **Install App**.
-5. For the organization (or account) you want to configure the credential for, click on the **Install** button.
+5. For the organization (or account) you want to configure the credential for, click the **Install** button.
 6. Select the repositories you want to grant access to: **All repositories** or **Only select repositories**
 7. Click on the `Install` button to complete the installation.
 
-### 5.3. Configure the credentials into the product
+### 5.3. Configure the credentials in the product
 
 1. On GitHub, go to your organization (or account, if the repository containing the workflows is owned by an account) settings.
 2. Go to **Developer Settings -> GitHub Apps** and select the GitHub App you installed by clicking on its name.
 3. On the current page, note the value of the **Client ID**.
-4. In the **Private keys** section, click on **Generate a private key** button. A file containing the `Private Key` will be downloaded to your device (usually this is a `.pem` file).
+4. In the **Private keys** section, click the **Generate a private key** button. A file containing the `Private Key` will be downloaded to your device (usually this is a `.pem` file).
    **Note:** `Private Key`should not be confused with `Client secret` (which is not required / used).
 5. Go to the OpenText Software Delivery Platform.
 6. Navigate to **Settings -> Spaces** (select the desired workspace containing the CI servers) **-> Credentials**.
@@ -226,7 +226,7 @@ Ensure the workflow includes the 4 required parameters:
 8. Enter a name of your choice. In the **User Name** field, enter the **Client ID** from the GitHub App, and in the **Password** field, enter the `Private Key` (the full content from `.pem` file) generated for this GitHub App.
 9. Click on the `Add` button to create the credential.
 10. In workspace settings, go to **DevOps -> CI Servers**.
-11. For the desired **CI Server** (it has the name of the organization on GitHub), double-click on the cell in the **Credential** column and select the newly created credential. If the **Credential** column is not visible, click on the **Choose Columns** button (near the **Filter** button) and make the column visible.
+11. For the desired **CI Server** (it has the name of the organization on GitHub), double-click the cell in the **Credential** column and select the newly created credential. If the **Credential** column is not visible, click the **Choose Columns** button (near the **Filter** button) and make the column visible.
 
 ## 6. Running MBT Tests
 
@@ -306,4 +306,4 @@ Ensure the workflow includes the 4 required parameters:
 
 ## 7. Limitations
 
-- One self-hosted GitHub runner to execute the integration workflow.
+- One self-hosted GitHub runner is required to execute the integration workflow.
