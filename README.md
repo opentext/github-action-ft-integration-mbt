@@ -10,8 +10,8 @@ The action will enable your GitHub repository to trigger MBT test runs and synch
 - [1. Introduction](#1-introduction)
 - [2. Table of Contents](#2-table-of-contents)
 - [3. Requirements](#3-requirements)
-- [4. Workflow Configuration](#4-workflow-configuration)
-  - [4.1. GitHub Workflow creation](#41-github-workflow-creation)
+- [4. GitHub Workflow Setup](#4-github-workflow-setup)
+  - [4.1. Workflow creation](#41-workflow-creation)
   - [4.2. Full YML Example](#41-full-yml-example)
   - [4.3. Workflow Parameters](#42-workflow-parameters)
   - [4.4. Debugging](#43-debugging)
@@ -34,14 +34,15 @@ The action will enable your GitHub repository to trigger MBT test runs and synch
 - A Windows machine with OpenText Functional Testing (formerly UFT One) application installed
 - API access to the product with **CI/CD Integration** or **DevOps Admin** roles.
 
-## 4. Workflow Configuration
+## 4. GitHub Workflow Setup
 
-### 4.1. GitHub Workflow creation
+This section explains how to create and configure a GitHub Actions workflow that integrates OpenText Functional Testing with Model-Based Testing (MBT). 
+
+### 4.1. Workflow creation
 
 > [!NOTE]
 > These steps should be done inside your GitHub repository which contains the OpenText Functional Testing (formerly UFT One) tests.
 
-This section explains how to configure a GitHub Actions workflow that integrates OpenText Functional Testing with Model-Based Testing (MBT). 
 - Create a new workflow from GitHub **Actions** tab (resulting in a new `.yml` file inside of `<your_repo>/.github/workflows/` subfolder).
 - Add `workflow_dispatch` event trigger to allow manual workflow run
 - Add `push` event trigger to allow automatic workflow run on every content change.
