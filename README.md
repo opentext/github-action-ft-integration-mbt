@@ -315,6 +315,9 @@ This requires configuring GitHub App credentials and adding them to the applicat
 
 1. One self-hosted GitHub runner is required to execute the integration workflow.
 2. Within a single workspace, you can only have one MBT Test Runner associated with each GitHub repository. 
+
 Therefore: 
+
   a. Before setting up the opentext/github-action-ft-integration-mbt to run MBT tests from a specific repository, make sure no existing MBT Test Runner in the same workspace is assigned to the same repository. 
+
   b. Since the MBT Test Runner creation depends on the YML workflow you use, make sure to create only one YML workflow per GitHub repository. An attempt sync to a second branch (using a second YML workflow) will fail." 
