@@ -33,6 +33,7 @@ The action will enable your GitHub repository to trigger MBT test runs and synch
 - The recommended product version is **25.x** or **higher**
 - A Windows machine with OpenText Functional Testing (formerly UFT One) application installed
 - API access to the product with **CI/CD Integration** or **DevOps Admin** roles.
+- Within a single workspace, you can only have one MBT Test Runner associated with each GitHub repository. Therefore, before setting up the custom action to run MBT tests from a specific repository, make sure no existing MBT Test Runner in the same workspace is assigned to the same repository.
 
 ## 4. GitHub Workflow Setup
 
@@ -314,6 +315,4 @@ This requires configuring GitHub App credentials and adding them to the applicat
 ## 7. Limitations
 
 1. One self-hosted GitHub runner is required to execute the integration workflow.
-2. Within a single workspace, you can only have one MBT Test Runner associated with each GitHub repository. Therefore: 
-   - Before setting up the opentext/github-action-ft-integration-mbt to run MBT tests from a specific repository, make sure no existing MBT Test Runner in the same workspace is assigned to the same repository. 
-   - Since the MBT Test Runner creation depends on the YML workflow you use, make sure to create only one YML workflow per GitHub repository. An attempt sync to a second branch (using a second YML workflow) will fail." 
+2. Within a single workspace, you can only have one MBT Test Runner associated with each GitHub repository. Since the MBT Test Runner creation depends on the YML workflow you use, make sure to create only one YML workflow per GitHub repository. An attempt to sync a second branch (using a second YML workflow) will fail. 
