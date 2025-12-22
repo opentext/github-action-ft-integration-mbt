@@ -201,39 +201,39 @@ This requires configuring GitHub App credentials and adding them to the applicat
 
 1. On GitHub, go to your organization (or account, if the repository containing the workflows is owned by an account) settings.
 2. In the left-side menu, go to **Developer Settings -> GitHub Apps**.
-3. Create a new GitHub App by clicking on **New GitHub App**.
+3. Create a new GitHub App by clicking the **New GitHub App**.
 4. In the **GitHub App name** field, enter a name of your choice.
-5. In the **Homepage URL** field, enter the URL of the Opentext Software Delivery Platform.
+5. In the **Homepage URL** field, enter the URL of the Opentext Core Software Delivery Platform.
 6. In the **Webhook** section, uncheck the **Active** option. No webhook is needed.
 7. In the **Permissions** section, grant the following repository permissions:
   - `Actions`: Read and write
   - `Content`: Read-only
-8. Click on the **Create GitHub App** button at the bottom of the page. Leave any other fields unchanged.
+8. Click the **Create GitHub App** button at the bottom of the page. Leave any other fields unchanged.
 
 ### 5.2. Installing a GitHub App
 
 1. On GitHub, go to your organization (or account, if the repository containing the workflows is owned by an account) settings.
-2. Go to **Developer settings -> GitHub App**.
-3. Select the credential you created in the previous step by clicking on its name.
+2. Go to **Developer settings -> GitHub Apps**.
+3. Select the `GitHub App` you created in the previous step by clicking its name.
 4. In the left-side menu, go to **Install App**.
-5. For the organization (or account) you want to configure the credential for, click the **Install** button.
+5. For the organization (or account) you want to configure the credentials for, click the **Install** button.
 6. Select the repositories you want to grant access to: **All repositories** or **Only select repositories**
-7. Click on the `Install` button to complete the installation.
+7. Click the `Install` button to complete the installation.
 
 ### 5.3. Configure the credentials in the product
 
 1. On GitHub, go to your organization (or account, if the repository containing the workflows is owned by an account) settings.
-2. Go to **Developer Settings -> GitHub Apps** and select the GitHub App you installed by clicking on its name.
+2. Go to **Developer Settings -> GitHub Apps** and select the GitHub App you installed by clicking its name.
 3. On the current page, note the value of the **Client ID**.
 4. In the **Private keys** section, click the **Generate a private key** button. A file containing the `Private Key` will be downloaded to your device (usually this is a `.pem` file).
    **Note:** `Private Key`should not be confused with `Client secret` (which is not required / used).
 5. Go to the OpenText Core Software Delivery Platform.
 6. Navigate to **Settings -> Spaces** (select the desired workspace containing the CI servers) **-> Credentials**.
-7. Create a new credential.
+7. Create a new `Credentials` entity.
 8. Enter a name of your choice. In the **User Name** field, enter the **Client ID** from the GitHub App, and in the **Password** field, enter the `Private Key` (the full content from `.pem` file) generated for this GitHub App.
-9. Click on the `Add` button to create the credential.
+9. Click the `Add` button to save the credentials.
 10. In workspace settings, go to **DevOps -> CI Servers**.
-11. For the desired **CI Server** (it has the name of the organization on GitHub), double-click the cell in the **Credential** column and select the newly created credential. If the **Credential** column is not visible, click the **Choose Columns** button (near the **Filter** button) and make the column visible.
+11. For the desired **CI Server** (it has the name of the organization on GitHub), double-click the cell in the **Credential** column and select the newly created entity. If the **Credential** column is not visible, click the **Choose Columns** button (near the **Filter** button) and make the column visible.
 
 ## 6. Running MBT Tests
 
@@ -256,7 +256,7 @@ This requires configuring GitHub App credentials and adding them to the applicat
 - You can manually rerun the Workflow anytime, or it will be automatically triggered by `push` events.
   - Then, the `Test Discovery` and `Synchronization` mechanisms will be triggered again (if the `minSyncInterval` minutes has elapsed since the last sync).
 
-- Example of **Credential** entity created at step [5.3 Configure the Credential](#53-configure-the-credential-into-the-product):
+- Example of **Credentials** entity created at step [5.3. Configure the Credentials in the product](#53-configure-the-credentials-in-the-product):
 
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/20a406a5-7587-47be-a5a2-62d8c9b630ee" alt="Credential" title="Credential" width="500" /></td></tr></table>
 
@@ -264,7 +264,7 @@ This requires configuring GitHub App credentials and adding them to the applicat
 
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/d7baddce-58e3-4460-9e91-28989488475c" alt="Release" title="Release" width="500" /></td></tr></table>
 
-- Make sure the **CI Server** is using the appropriate the `Credential` entity:
+- Make sure the **CI Server** is using the appropriate the `Credentials` entity:
 
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/720ae3e8-3df6-41ed-8e30-e1ee73a21af5" alt="CI Server" title="CI Server" width="500" /></td></tr></table>
 
@@ -313,4 +313,8 @@ This requires configuring GitHub App credentials and adding them to the applicat
 
 ## 7. Limitations
 
-- One self-hosted GitHub runner is required to execute the integration workflow.
+1. One self-hosted GitHub runner is required to execute the integration workflow.
+2. Within a single workspace, you can only have one MBT Test Runner associated with each GitHub repository. 
+Therefore: 
+  a. Before setting up the opentext/github-action-ft-integration-mbt to run MBT tests from a specific repository, make sure no existing MBT Test Runner in the same workspace is assigned to the same repository. 
+  b. Since the MBT Test Runner creation depends on the YML workflow you use, make sure to create only one YML workflow per GitHub repository. An attempt sync to a second branch (using a second YML workflow) will fail." 
