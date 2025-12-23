@@ -90,7 +90,7 @@ on:
 env: 
     NODE_TLS_REJECT_UNAUTHORIZED: 0
 ```
-- In the `jobs` section add a job for `github-action-ft-integration-mbt` and make sure the `runs-on` property contains at least the `self-hosted` value.
+- In the `jobs` section add a job for `sdp-ft-mbt-github-action-integration` and make sure the `runs-on` property contains at least the `self-hosted` value.
 - Configure two secret variables named `SDP_CLIENT_ID` and `SDP_CLIENT_SECRET` with the credentials, inside your GitHub repository (more details about
 secret variables configuration [here](https://docs.github.com/en/actions/security-guides/encrypted-secrets)).
 - Set integration config params (the product's URL, Shared Space, Workspace, credentials) and repository (Token).
@@ -103,7 +103,7 @@ jobs:
     name: GHA-FT-Integ-MBT#${{github.event.action}}#${{github.event.workflow_run.id}} # you can use a static / constant value too
     steps:
       - name: GitHub Action FT Integration MBT
-        uses: opentext/github-action-ft-integration-mbt@main # you can use the last released version instead of main
+        uses: opentext/sdp-ft-mbt-github-action-integration@main # you can use the last released version instead of main
         id: gha-ft-integration-mbt
         with:
           octaneUrl: <sdp_octane_URL>
@@ -115,8 +115,8 @@ jobs:
           minSyncInterval: 2
           logLevel: 5
 ```
-For more details about the parameters of `opentext/github-action-ft-integration-mbt`, please check this page:
-https://github.com/MicroFocus/github-action-ft-integration-mbt/blob/main/action.yml
+For more details about the parameters of `opentext/sdp-ft-mbt-github-action-integration`, please check this page:
+https://github.com/MicroFocus/sdp-ft-mbt-github-action-integration/blob/main/action.yml
 
 ### 4.2. Full YML Example
 
@@ -157,7 +157,7 @@ jobs:
     name: Integration-Job
     steps:
       - name: GitHub Action FT Integration MBT
-        uses: opentext/github-action-ft-integration-mbt@main 	# or use a release version instead of main
+        uses: opentext/sdp-ft-mbt-github-action-integration@main 	# or use a release version instead of main
         id: gha-ft-integration
         with:
           octaneUrl: 'https://qa8.almoctane.com'
