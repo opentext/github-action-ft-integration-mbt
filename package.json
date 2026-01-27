@@ -1,6 +1,6 @@
 {
-  "name": "github-action-ft-integration-mbt",
-  "version": "25.4.0",
+  "name": "sdp-ft-mbt-github-action-integration",
+  "version": "26.1.0",
   "description": "A custom action which facilitates the connection between GitHub actions and OpenText SDP / SDM.",
   "main": "src/main.ts",
   "scripts": {
@@ -13,6 +13,16 @@
     "CI",
     "workflow",
     "DevOps"
+  ],
+  "contributors": [
+    {
+      "name": "Dorin Bogdan",
+      "email": "dbogdan@opentext.com"
+    },
+    {
+      "name": "Ovidiu Stefan Popescu",
+      "email": "opopescu@opentext.com"
+    }
   ],
   "license": "Apache-2.0",
   "dependencies": {
@@ -53,17 +63,14 @@
   "lint-staged": {
     "*.{ts,tsx,js,jsx,css}": "prettier --write"
   },
-  "directories": {
-    "doc": "docs"
-  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dorin7bogdan/github-action-ft-integration.git"
+    "url": "git+https://github.com/opentext/sdp-ft-mbt-github-action-integration.git"
   },
-  "author": "",
+  "author": "Open Text",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/dorin7bogdan/github-action-ft-integration/issues"
+    "url": "https://github.com/opentext/sdp-ft-mbt-github-action-integration/issues"
   },
-  "homepage": "https://github.com/dorin7bogdan/github-action-ft-integration#readme"
+  "homepage": "https://github.com/opentext/sdp-ft-mbt-github-action-integration#readme"
 }
