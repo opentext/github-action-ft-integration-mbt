@@ -116,7 +116,7 @@ jobs:
           logLevel: 5
 ```
 For more details about the parameters of `opentext/sdp-ft-mbt-github-action-integration`, please check this page:
-https://github.com/MicroFocus/sdp-ft-mbt-github-action-integration/blob/main/action.yml
+https://github.com/opentext/sdp-ft-mbt-github-action-integration/blob/main/action.yml
 
 ### 4.2. Full YML Example
 
@@ -259,58 +259,58 @@ This requires configuring GitHub App credentials and adding them to the applicat
 
 - Example of **Credentials** entity created at step [5.3. Configure the Credentials in the product](#53-configure-the-credentials-in-the-product):
 
-<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/20a406a5-7587-47be-a5a2-62d8c9b630ee" alt="Credential" title="Credential" width="500" /></td></tr></table>
+<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/c32e8245-a4af-4102-87fe-3fd182c286d5" alt="Credential" title="Credential" width="500" /></td></tr></table>
 
 - Make sure a `Release` entity exists, otherwise create it (required to Run a **Test Suite**):
 
-<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/d7baddce-58e3-4460-9e91-28989488475c" alt="Release" title="Release" width="500" /></td></tr></table>
+<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/ee66d0bb-5d05-40cd-8cb0-18bd06a9d2a4" alt="Release" title="Release" width="500" /></td></tr></table>
 
 - Make sure the **CI Server** is using the appropriate the `Credentials` entity:
 
-<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/720ae3e8-3df6-41ed-8e30-e1ee73a21af5" alt="CI Server" title="CI Server" width="500" /></td></tr></table>
+<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/857fdcad-11b2-4e09-9c08-18207fa5cd0a" alt="CI Server" title="CI Server" width="500" /></td></tr></table>
 
 - Select the **Test Runner** and click `Sync with CI`:
 
-<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/9cad0353-fef8-4a00-b63a-9f032faa8c03" alt="Test Runner" title="Test Runner" width="500" /></td></tr></table>
+<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/beffda80-9241-4e31-9bcc-6eb8de59bce5" alt="Test Runner" title="Test Runner" width="500" /></td></tr></table>
 
 - Optionally, review the **Test Runner** details:
 
-<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/258a1333-f01d-4049-bb0d-34e1a4ccf258" alt="Test Runner" title="Test Runner" width="500" /></td></tr></table>
+<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/b0ff95d0-dda8-4aa9-b517-a0227758c1f4" alt="Test Runner" title="Test Runner" width="500" /></td></tr></table>
 
 ### 6.3. Create Models and MBT Tests
 
 - In the product, navigate to the **Model-Based Testing** module, create a new **Model** entity, add the desired **Units** and link them
 - Example of **Model** entity:
 
-<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/4d98e82c-9e8c-44b0-9b45-c1aff9d2af84" alt="Model" title="Model" width="500" /></td></tr></table>
+<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/d337d591-741c-447f-bfea-7e9be1dcc8c4" alt="Model" title="Model" width="500" /></td></tr></table>
 
 - To generate the **MBT Test** entities, open the `Paths` tab, select the desired items, then click `Generate Test`:
 
-<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/6dd441b9-5921-4433-b7d2-fbfb8e7faf4c" alt="Generate MBT Test" title="Generate MBT Test" width="500" /></td></tr></table>
+<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/b9c920f1-e55d-4963-bd72-b73c8af8ac49" alt="Generate MBT Test" title="Generate MBT Test" width="500" /></td></tr></table>
 
 - After generating the **MBT Test**, the column `Covered by test` should be populated like this:
 
-<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/5c95fc84-7943-444e-8828-f4633ed903fe" alt="MBT Test" title="MBT Test" width="500" /></td></tr></table>
+<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/2b1cd212-ee7f-4006-b850-0e0c749197ee" alt="MBT Test" title="MBT Test" width="500" /></td></tr></table>
 
 ### 6.4. Create a Test Suite
 
 - Open the **Execution** or **Quality** module and go to `Tests` tab:
 
-<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/bfd317c8-0601-4f3d-b978-0cbae7d29121" alt="Tests" title="Tests" width="500" /></td></tr></table>
+<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/f213ee83-d711-478e-b511-2fc244868e2b" alt="Tests" title="Tests" width="500" /></td></tr></table>
 
 - Create a **Test Suite** entity if you don't have one, then assign the relevant **MBT Test** entries to it.
 
-<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/9ba9802f-85ac-47eb-a911-ba9850b6c5ec" alt="Test Suite" title="Test Suite" width="500" /></td></tr></table>
+<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/5a7a8d84-6e0d-493e-b0d5-4f3c1964f296" alt="Test Suite" title="Test Suite" width="500" /></td></tr></table>
 
 - Make sure the `Run Mode` is set to `Automatically`, and update **Test Suite** like this:
 
-<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/064a650b-89a9-47fa-8bdb-9dda7ebbf57b" alt="Test Suite" title="Test Suite" width="500" /></td></tr></table>
+<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/365fa820-e2ec-4ce5-b9fa-54c66503ef70" alt="Test Suite" title="Test Suite" width="500" /></td></tr></table>
 
 ### 6.5. Run the MBT Tests from the Product
 
 - In the product, select or open the test suite and click `Run Suite`.
 
-<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/e80451df-8379-476b-92ac-f7d4b17e1e2a" alt="Test Suite" title="Test Suite" width="500" /></td></tr></table>
+<table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/d38e2747-c755-4367-ad3c-ee66fc560fda" alt="Test Suite" title="Test Suite" width="500" /></td></tr></table>
 
 ## 7. Limitations
 
