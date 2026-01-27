@@ -1,4 +1,4 @@
-name: 'GitHub Action FT Integration MBT'
+name: 'SDP-FT-MBT GitHub Action Integration'
 description: 'Enable your GitHub repository to trigger MBT test runs and synchronize results with OpenText SDP/SDM.'
 inputs:
   octaneUrl:
