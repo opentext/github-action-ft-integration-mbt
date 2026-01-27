@@ -261,11 +261,11 @@ This requires configuring GitHub App credentials and adding them to the applicat
 
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/c32e8245-a4af-4102-87fe-3fd182c286d5" alt="Credential" title="Credential" width="500" /></td></tr></table>
 
-- Make sure a `Release` entity exists, otherwise create it (required to Run a **Test Suite**):
+- Make sure a **Release** entity exists, otherwise create it (required to Run a `Test Suite`):
 
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/ee66d0bb-5d05-40cd-8cb0-18bd06a9d2a4" alt="Release" title="Release" width="500" /></td></tr></table>
 
-- Make sure the **CI Server** is using the appropriate the `Credentials` entity:
+- Make sure the **CI Server** is using the appropriate **Credentials** entity in the `Credential` column:
 
 <table><tr><td style="border: 2px solid #ccc; padding: 4px;"><img src="https://github.com/user-attachments/assets/857fdcad-11b2-4e09-9c08-18207fa5cd0a" alt="CI Server" title="CI Server" width="500" /></td></tr></table>
 
